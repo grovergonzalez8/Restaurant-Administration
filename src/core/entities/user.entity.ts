@@ -17,7 +17,7 @@ export class UserEntity {
     @Column({ nullable: true })
     phone: string;
 
-    @Column({ type: 'enum', enum: ['customer', 'kitchen', 'admin', 'driver'], default: 'customer' })
+    @Column({ default: 'customer' })
     role: string;
 
     @CreateDateColumn()
