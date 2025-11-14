@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsNumber, Min, IsBoolean } from "class-validator";
+import { IsOptional, IsString, IsNumber, Min, IsBoolean, IsEnum } from "class-validator";
+import { MenuStatus } from "src/core/enums/menu-status.enum";
 
 export class UpdateMenuItemDto {
     @IsOptional()
@@ -14,7 +15,7 @@ export class UpdateMenuItemDto {
     @Min(0)
     price?: number;
 
+    @IsEnum(MenuStatus)
     @IsOptional()
-    @IsBoolean()
-    isAvailable?: boolean;
+    status?: MenuStatus;
 }

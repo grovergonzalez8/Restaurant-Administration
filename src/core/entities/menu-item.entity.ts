@@ -1,4 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from "typeorm";
+import { MenuStatus } from "../enums/menu-status.enum";
 
 @Entity('MenuItems')
 export class MenuItemEntity {
@@ -14,8 +15,8 @@ export class MenuItemEntity {
     @Column('decimal', { precision: 10, scale: 2 })
     price: number;
 
-    @Column({ default: true })
-    isAvailable: boolean;
+    @Column({ type: 'enum', enum: MenuStatus ,default: MenuStatus.AVAIBLE })
+    status: MenuStatus;
 
     @CreateDateColumn()
     createdAt: Date;
