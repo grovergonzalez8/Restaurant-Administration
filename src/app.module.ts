@@ -6,6 +6,7 @@ import { typeOrmConfig } from './shared/infra/database/typeorm.config';
 import { UsersModule } from './modules/users/users.module';
 import { MenuModule } from './modules/menu/menu.module';
 import { ConfigModule } from '@nestjs/config';
+import { OrdersModule } from './modules/orders/orders.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { ConfigModule } from '@nestjs/config';
     TypeOrmModule.forRoot(typeOrmConfig),
     UsersModule,
     MenuModule,
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

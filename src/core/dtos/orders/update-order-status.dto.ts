@@ -1,7 +1,5 @@
-import { IsNotEmpty, IsIn } from "class-validator";
+import { PartialType } from "@nestjs/swagger";
+import { CreateOrderDto } from "./create-order.dto";
 
-export class UpdateOrderStatusDto {
-    @IsNotEmpty()
-    @IsIn(['pending', 'preparing', 'delivered', 'cancelled'])
-    status: 'pending' | 'preparing' | 'delivered' | 'cancelled';
-}
+
+export class UpdateOrderDto extends PartialType(CreateOrderDto) {}
