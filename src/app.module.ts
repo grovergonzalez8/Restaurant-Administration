@@ -7,6 +7,7 @@ import { UsersModule } from './modules/users/users.module';
 import { MenuModule } from './modules/menu/menu.module';
 import { ConfigModule } from '@nestjs/config';
 import { OrdersModule } from './modules/orders/orders.module';
+import { TablesModule } from './modules/tables/tables.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { OrdersModule } from './modules/orders/orders.module';
     UsersModule,
     MenuModule,
     OrdersModule,
+    TablesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

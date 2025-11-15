@@ -5,6 +5,7 @@ import { UpdateOrderDto } from 'src/core/dtos/orders/update-order-status.dto';
 import { MenuItemEntity } from 'src/core/entities/menu-item.entity';
 import { OrderItemEntity } from 'src/core/entities/order-item.entity';
 import { OrderEntity } from 'src/core/entities/order.entity';
+import { TableEntity } from 'src/core/entities/table.entity';
 import { Repository } from 'typeorm';
 
 @Injectable()
@@ -12,7 +13,8 @@ export class OrdersService {
     constructor(
         @InjectRepository(OrderEntity) private ordersRepo: Repository<OrderEntity>,
         @InjectRepository(OrderItemEntity) private orderItemsRepo: Repository<OrderItemEntity>,
-        @InjectRepository(MenuItemEntity) private menuRepo: Repository<MenuItemEntity>
+        @InjectRepository(MenuItemEntity) private menuRepo: Repository<MenuItemEntity>,
+        @InjectRepository(TableEntity) private tablesRepo: Repository<TableEntity>
     ) {}
 
     findAll(): Promise<OrderEntity[]> {
@@ -28,10 +30,14 @@ export class OrdersService {
     }
 
     async create(dto: CreateOrderDto): Promise<OrderEntity> {
-        const order = new OrderEntity();
-        order.tableNumber = dto.tableNumber;
-        order.status = dto.status;
+        const table = await this.tablesRepo.findOne({ where: { id: dto.tableId } });
+        if (!table) {
+            throw new NotFoundException('Mesa no encontrada');
+        }
 
+        const order = new OrderEntity();
+        order.table = table;
+        order.status = dto.status;
         order.items = [];
 
         let total = 0;

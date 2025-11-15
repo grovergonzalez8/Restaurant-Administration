@@ -12,7 +12,7 @@ class OrderItemDto {
 
 export class CreateOrderDto {
     @IsNumber()
-    tableNumber: number;
+    tableId: string;
 
     @IsEnum(OrderStatus)
     status: OrderStatus;

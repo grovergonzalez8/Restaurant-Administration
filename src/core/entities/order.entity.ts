@@ -2,14 +2,15 @@ import { Entity, PrimaryGeneratedColumn, ManyToOne, Column, OneToMany, CreateDat
 import { UserEntity } from "./user.entity";
 import { OrderItemEntity } from "./order-item.entity";
 import { OrderStatus } from "../enums/order-status.enum";
+import { TableEntity } from "./table.entity";
 
 @Entity('orders')
 export class OrderEntity {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column()
-    tableNumber: number;
+    @ManyToOne(() => TableEntity, table => table.orders, { eager: true } )
+    table: TableEntity;
 
     @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
     status: OrderStatus;
