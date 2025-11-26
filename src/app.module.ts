@@ -8,6 +8,7 @@ import { MenuModule } from './modules/menu/menu.module';
 import { ConfigModule } from '@nestjs/config';
 import { OrdersModule } from './modules/orders/orders.module';
 import { TablesModule } from './modules/tables/tables.module';
+import { KitchenModule } from './modules/kitchen/kitchen.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { TablesModule } from './modules/tables/tables.module';
     MenuModule,
     OrdersModule,
     TablesModule,
+    KitchenModule,
   ],
   controllers: [AppController],
   providers: [AppService],
