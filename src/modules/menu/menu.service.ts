@@ -27,7 +27,7 @@ export class MenuService {
             name: dto.name,
             description: dto.description,
             price: dto.price,
-            isAvailable: dto.isAvailable ?? true,
+            status: dto.status
         });
 
         return this.menuRepository.save(menuItem);
