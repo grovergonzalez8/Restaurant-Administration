@@ -9,6 +9,7 @@ import { ConfigModule } from '@nestjs/config';
 import { OrdersModule } from './modules/orders/orders.module';
 import { TablesModule } from './modules/tables/tables.module';
 import { KitchenModule } from './modules/kitchen/kitchen.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { KitchenModule } from './modules/kitchen/kitchen.module';
     OrdersModule,
     TablesModule,
     KitchenModule,
+    InventoryModule,
   ],
   controllers: [AppController],
   providers: [AppService],
