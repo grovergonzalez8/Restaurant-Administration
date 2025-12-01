@@ -10,6 +10,7 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { TablesModule } from './modules/tables/tables.module';
 import { KitchenModule } from './modules/kitchen/kitchen.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { InventoryModule } from './modules/inventory/inventory.module';
     TablesModule,
     KitchenModule,
     InventoryModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
