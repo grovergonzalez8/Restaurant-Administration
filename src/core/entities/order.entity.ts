@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, ManyToOne, Column, OneToMany, CreateDateColumn, UpdateDateColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, ManyToOne, Column, OneToMany, CreateDateColumn, UpdateDateColumn, JoinColumn } from "typeorm";
 import { UserEntity } from "./user.entity";
 import { OrderItemEntity } from "./order-item.entity";
 import { OrderStatus } from "../enums/order-status.enum";
@@ -10,7 +10,12 @@ export class OrderEntity {
     id: string;
 
     @ManyToOne(() => TableEntity, table => table.orders, { eager: true } )
+    @JoinColumn({ name: 'tableId' })
     table: TableEntity;
+
+    @ManyToOne(() => UserEntity, user => user.orders, { eager: true, nullable: true })
+    @JoinColumn({ name: 'createdById' })
+    createdBy?: UserEntity;
 
     @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
     status: OrderStatus;

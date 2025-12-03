@@ -1,4 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from "typeorm";
+import { RoleEntity } from "./role.entity";
+import { OrderEntity } from "./order.entity";
 
 @Entity('users')
 export class UserEntity {
@@ -17,8 +19,12 @@ export class UserEntity {
     @Column({ nullable: true })
     phone: string;
 
-    @Column({ default: 'customer' })
-    role: string;
+    @ManyToOne(() => RoleEntity, { eager: true })
+    @JoinColumn({ name: 'roleId' })
+    role: RoleEntity;
+
+    @OneToMany(() => OrderEntity, order => order.createdBy)
+    orders: OrderEntity[];
 
     @CreateDateColumn()
     createdAt: Date;

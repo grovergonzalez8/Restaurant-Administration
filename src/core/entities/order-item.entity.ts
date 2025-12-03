@@ -8,9 +8,11 @@ export class OrderItemEntity {
     id: string;
 
     @ManyToOne(() => OrderEntity, order => order.items, { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'orderId' })
     order: OrderEntity;
 
     @ManyToOne(() => MenuItemEntity, { eager: true })
+    @JoinColumn({ name: 'menuItemId' })
     menuItem: MenuItemEntity;
 
     @Column()
