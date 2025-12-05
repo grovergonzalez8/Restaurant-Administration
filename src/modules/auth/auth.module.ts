@@ -8,6 +8,7 @@ import { UserEntity } from 'src/core/entities/user.entity';
 import { JwtStrategy } from './jwt.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RolesGuard } from './roles.guard';
+import { RoleEntity } from 'src/core/entities/role.entity';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { RolesGuard } from './roles.guard';
         signOptions: { expiresIn: config.get<any>('JWT_EXPIRES_IN', '8h') },
       })
     }),
-    TypeOrmModule.forFeature([UserEntity]),
+    TypeOrmModule.forFeature([UserEntity, RoleEntity]),
   ],
   providers: [AuthService, JwtStrategy, RolesGuard],
   controllers: [AuthController],
