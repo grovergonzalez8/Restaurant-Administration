@@ -23,6 +23,12 @@ export class UsersController {
     findOne(@Param('id') id: string) {
         return this.usersService.findOne(id);
     }
+
+    @Get(':email')
+    @Roles('admin')
+    findByEmail(@Param('email') email: string) {
+        return this.usersService.findByEmail(email);
+    }
     
     @Post()
     @Roles('admin')

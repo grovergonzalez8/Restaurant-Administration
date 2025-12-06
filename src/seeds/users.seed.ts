@@ -11,10 +11,16 @@ type SeedUser = {
     roleName: string;
 }
 
-async function seedUsers() {
-    const app = await NestFactory.createApplicationContext(AppModule);
-    const rolesService = app.get(RolesService);
-    const usersService = app.get(UsersService);
+export async function seedUsers(app?: any) {
+    let createdContext = false;
+
+    if (!app) {
+        app = await NestFactory.createApplicationContext(AppModule);
+        createdContext = true;
+    }
+
+    const rolesService: RolesService = app.get(RolesService);
+    const usersService: UsersService = app.get(UsersService);
 
     const users: SeedUser[] = [
         { name: 'Admin Sistema', email: 'grovergonzalez8@gmail.com', password: 'Admin123*', phone: 64858084, roleName: 'admin' },
@@ -24,6 +30,12 @@ async function seedUsers() {
 
     for (const userData of users) {
         try {
+            const existing = await usersService.findByEmail?.(userData.email);
+            if (existing) {
+                console.log(`Usuario existente, skip: ${userData.email}`);
+                continue;
+            }
+            
             let role = await rolesService.findByName(userData.roleName);
 
             if (!role) {
@@ -51,7 +63,9 @@ async function seedUsers() {
             console.error(`Error al crear el usuario '${userData.name}':`, error.message);
         }
     }
-    await app.close();
+    if (createdContext) {
+      await app.close();  
+    } 
 }
 
 seedUsers().catch(error => {

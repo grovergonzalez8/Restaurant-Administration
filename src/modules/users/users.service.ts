@@ -28,6 +28,14 @@ export class UsersService {
         return user;
     }
 
+    async findByEmail(email: string): Promise<UserEntity> {
+        const user = await this.usersRepository.findOne({ where: { email }, relations: ['role'] });
+        if (!user) {
+            throw new NotFoundException(`Usuario con email: ${email} no encontrado`);
+        }
+        return user;
+    }
+
     async create(dto: CreateUserDto): Promise<UserEntity> {
         const existing = await this.usersRepository.findOne({ where: { email: dto.email } });
         if (existing) {
