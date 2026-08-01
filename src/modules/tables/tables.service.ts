@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { CreateTableDto } from 'src/core/dtos/tables/create-table.dto';
 import { UpdateTableDto } from 'src/core/dtos/tables/update-table.dto';
 import { TableEntity } from 'src/core/entities/table.entity';
+import { TableStatus } from 'src/core/enums/table-status.enum';
 import { Repository } from 'typeorm';
 
 @Injectable()
@@ -13,6 +14,10 @@ export class TablesService {
 
     findAll(): Promise<TableEntity[]> {
         return this.tablesRepo.find();
+    }
+
+    findAvailable(): Promise<TableEntity[]> {
+        return this.tablesRepo.find({ where: { status: TableStatus.FREE } });
     }
 
     async findOne(id: string): Promise<TableEntity>{

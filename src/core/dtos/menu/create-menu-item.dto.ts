@@ -10,6 +10,10 @@ export class CreateMenuItemDto {
     @IsString()
     description?: string;
 
+    @IsOptional()
+    @IsString()
+    imageUrl?: string;
+
     @IsNumber()
     @Min(0)
     price: number;

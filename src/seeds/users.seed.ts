@@ -67,8 +67,3 @@ export async function seedUsers(app?: any) {
       await app.close();  
     } 
 }
-
-seedUsers().catch(error => {
-    console.error('Error al ejecutar el seed de usuarios:', error);
-    process.exit(1);
-});

@@ -1,23 +1,25 @@
 import { Type } from "class-transformer";
-import { IsNotEmpty, IsArray, ValidateNested, IsNumber, IsEnum } from "class-validator";
+import { IsNotEmpty, IsArray, ValidateNested, IsNumber, IsEnum, IsUUID, Min, ArrayMinSize } from "class-validator";
 import { OrderStatus } from "src/core/enums/order-status.enum";
 
 class OrderItemDto {
-    @IsNotEmpty()
+    @IsUUID()
     menuItemId: string;
 
     @IsNumber()
+    @Min(1)
     quantity: number;
 }
 
 export class CreateOrderDto {
-    @IsNumber()
+    @IsUUID()
     tableId: string;
 
     @IsEnum(OrderStatus)
-    status: OrderStatus;
+    status?: OrderStatus;
 
     @IsArray()
+    @ArrayMinSize(1)
     @ValidateNested({ each: true })
     @Type(() => OrderItemDto)
     items: OrderItemDto[];

@@ -4,6 +4,11 @@ import { CreateUserDto } from 'src/core/dtos/users/create-user.dto';
 import { LoginUserDto } from 'src/core/dtos/login/login.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
+const withoutPasswordHash = <T extends { passwordHash: string }>(user: T) => {
+    const { passwordHash, ...safeUser } = user;
+    return safeUser;
+};
+
 @Controller('auth')
 export class AuthController {
 
@@ -11,17 +16,20 @@ export class AuthController {
 
     @Post('register')
     async register(@Body() dto: CreateUserDto) {
-        return this.authService.register(dto);
+        return withoutPasswordHash(
+            await this.authService.register({ ...dto, roleId: undefined }),
+        );
     }
 
     @Post('login')
     async login(@Body() dto: LoginUserDto) {
-        return this.authService.login(dto);
+        const result = await this.authService.login(dto);
+        return { ...result, user: withoutPasswordHash(result.user) };
     }
 
     @UseGuards(JwtAuthGuard)
     @Get('profile')
     async profile(@Request() req) {
-        return req.user;
+        return withoutPasswordHash(req.user);
     }
 }

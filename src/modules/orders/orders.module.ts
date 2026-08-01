@@ -6,10 +6,11 @@ import { OrderEntity } from 'src/core/entities/order.entity';
 import { OrderItemEntity } from 'src/core/entities/order-item.entity';
 import { MenuItemEntity } from 'src/core/entities/menu-item.entity';
 import { TableEntity } from 'src/core/entities/table.entity';
+import { KitchenOrderEntity } from 'src/core/entities/kitchen-order.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([OrderEntity, OrderItemEntity, MenuItemEntity, TableEntity])
+    TypeOrmModule.forFeature([OrderEntity, OrderItemEntity, MenuItemEntity, TableEntity, KitchenOrderEntity])
   ],
   controllers: [OrdersController],
   providers: [OrdersService]

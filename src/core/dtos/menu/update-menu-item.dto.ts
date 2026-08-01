@@ -11,6 +11,10 @@ export class UpdateMenuItemDto {
     description?: string;
 
     @IsOptional()
+    @IsString()
+    imageUrl?: string;
+
+    @IsOptional()
     @IsNumber()
     @Min(0)
     price?: number;

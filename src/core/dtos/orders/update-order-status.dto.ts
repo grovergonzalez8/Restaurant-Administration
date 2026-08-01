@@ -1,5 +1,7 @@
-import { PartialType } from "@nestjs/swagger";
-import { CreateOrderDto } from "./create-order.dto";
+import { IsEnum } from 'class-validator';
+import { OrderStatus } from '../../enums/order-status.enum';
 
-
-export class UpdateOrderDto extends PartialType(CreateOrderDto) {}
+export class UpdateOrderDto {
+  @IsEnum(OrderStatus)
+  status: OrderStatus;
+}

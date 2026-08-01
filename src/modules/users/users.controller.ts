@@ -6,6 +6,11 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 
+const withoutPasswordHash = <T extends { passwordHash: string }>(user: T) => {
+    const { passwordHash, ...safeUser } = user;
+    return safeUser;
+};
+
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('users')
 export class UsersController {
@@ -15,31 +20,31 @@ export class UsersController {
     @Get()
     @Roles('admin')
     findAll() {
-        return this.usersService.findAll();
+        return this.usersService.findAll().then((users) => users.map(withoutPasswordHash));
     }
 
     @Get(':id')
     @Roles('admin')
     findOne(@Param('id') id: string) {
-        return this.usersService.findOne(id);
+        return this.usersService.findOne(id).then(withoutPasswordHash);
     }
 
-    @Get(':email')
+    @Get('email/:email')
     @Roles('admin')
     findByEmail(@Param('email') email: string) {
-        return this.usersService.findByEmail(email);
+        return this.usersService.findByEmail(email).then(withoutPasswordHash);
     }
     
     @Post()
     @Roles('admin')
     create(@Body() dto: CreateUserDto) {
-        return this.usersService.create(dto);
+        return this.usersService.create(dto).then(withoutPasswordHash);
     }
 
     @Put(':id')
     @Roles('admin')
     update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-        return this.usersService.update(id, dto);
+        return this.usersService.update(id, dto).then(withoutPasswordHash);
     }
 
     @Delete(':id')

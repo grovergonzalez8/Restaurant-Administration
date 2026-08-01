@@ -15,6 +15,11 @@ export class MenuController {
         return this.menuService.findAll();
     }
 
+    @Get('available')
+    findAvailable() {
+        return this.menuService.findAvailable();
+    }
+
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.menuService.findOne(id);

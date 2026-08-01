@@ -13,6 +13,9 @@ export class MenuItemEntity {
     @Column({ nullable: true })
     description?: string;
 
+    @Column({ nullable: true })
+    imageUrl?: string;
+
     @Column('decimal', { precision: 10, scale: 2 })
     price: number;
 

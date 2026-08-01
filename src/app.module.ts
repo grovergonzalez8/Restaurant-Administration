@@ -12,6 +12,7 @@ import { KitchenModule } from './modules/kitchen/kitchen.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { RolesModule } from './modules/roles/roles.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { RolesModule } from './modules/roles/roles.module';
     InventoryModule,
     AuthModule,
     RolesModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

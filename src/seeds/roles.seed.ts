@@ -38,8 +38,3 @@ export async function seedRoles(app?: any) {
         await app.close();
     }
 }
-
-seedRoles().catch(error => {
-    console.error('Error al ejecutar el seed de roles:', error);
-    process.exit(1);
-});

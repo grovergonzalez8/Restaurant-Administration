@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateKitchenOrderDto } from 'src/core/dtos/kitchen/create-kitchen-order.dto';
 import { UpdateKitchenStatusDto } from 'src/core/dtos/kitchen/update-kitchen-order.dto';
@@ -19,6 +19,8 @@ export class KitchenService {
     async create(dto: CreateKitchenOrderDto): Promise<KitchenOrderEntity> {
         const order = await this.orderRepository.findOne({ where: { id: dto.orderID } });
         if (!order) throw new NotFoundException('Pedido no encontrado');
+        const existing = await this.kitchenRepository.findOne({ where: { order: { id: order.id } } });
+        if (existing) throw new ConflictException('El pedido ya tiene una orden de cocina');
 
         const kitchenOrder = this.kitchenRepository.create({
         order,

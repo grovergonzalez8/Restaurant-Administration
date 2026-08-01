@@ -17,6 +17,12 @@ export class TablesController {
         return this.tablesService.findAll();
     }
 
+    @Get('available')
+    @Roles('admin', 'host', 'waiter')
+    findAvailable() {
+        return this.tablesService.findAvailable();
+    }
+
     @Get(':id')
     @Roles('admin', 'host', 'waiter')
     findOne(@Param('id') id: string) {

@@ -61,6 +61,9 @@ export class UsersService {
         user.email = dto.email;
         user.passwordHash = passwordHash;
         user.name = dto.name;
+        if (dto.phone !== undefined) {
+            user.phone = dto.phone;
+        }
         user.role = role;
 
         const saved = await this.usersRepository.save(user);
@@ -71,7 +74,7 @@ export class UsersService {
         const user = await this.findOne(id);
 
         if (dto.password) {
-            dto.password = await hashPassword(dto.password);
+            user.passwordHash = await hashPassword(dto.password);
         }
 
         if (dto.roleId) {
@@ -88,6 +91,10 @@ export class UsersService {
 
         if (dto.email) {
             user.email = dto.email;
+        }
+
+        if (dto.phone !== undefined) {
+            user.phone = dto.phone;
         }
 
         const saved = await this.usersRepository.save(user);

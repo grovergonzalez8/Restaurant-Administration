@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { CreateMenuItemDto } from 'src/core/dtos/menu/create-menu-item.dto';
 import { UpdateMenuItemDto } from 'src/core/dtos/menu/update-menu-item.dto';
 import { MenuItemEntity } from 'src/core/entities/menu-item.entity';
+import { MenuStatus } from 'src/core/enums/menu-status.enum';
 import { Repository } from 'typeorm';
 
 @Injectable()
@@ -16,6 +17,10 @@ export class MenuService {
         return this.menuRepository.find();
     }
 
+    findAvailable(): Promise<MenuItemEntity[]> {
+        return this.menuRepository.find({ where: { status: MenuStatus.AVAIBLE } });
+    }
+
     async findOne(id: string): Promise<MenuItemEntity> {
         const item = await this.menuRepository.findOne({ where: { id } });
         if (!item) throw new NotFoundException('Item de menú no encontrado');
@@ -26,6 +31,7 @@ export class MenuService {
         const menuItem = this.menuRepository.create({
             name: dto.name,
             description: dto.description,
+            imageUrl: dto.imageUrl,
             price: dto.price,
             status: dto.status
         });
