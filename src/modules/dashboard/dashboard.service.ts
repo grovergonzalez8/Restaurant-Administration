@@ -6,6 +6,8 @@ import { MenuItemEntity } from 'src/core/entities/menu-item.entity';
 import { OrderEntity } from 'src/core/entities/order.entity';
 import { TableEntity } from 'src/core/entities/table.entity';
 import { PaymentEntity } from 'src/core/entities/payment.entity';
+import { ReservationEntity } from 'src/core/entities/reservation.entity';
+import { ReservationStatus } from 'src/core/enums/reservation-status.enum';
 import { KitchenStatus } from 'src/core/enums/kitchen-status.enum';
 import { MenuStatus } from 'src/core/enums/menu-status.enum';
 import { OrderStatus } from 'src/core/enums/order-status.enum';
@@ -21,16 +23,18 @@ export class DashboardService {
     @InjectRepository(MenuItemEntity) private readonly menu: Repository<MenuItemEntity>,
     @InjectRepository(InventoryItemEntity) private readonly inventory: Repository<InventoryItemEntity>,
     @InjectRepository(PaymentEntity) private readonly payments: Repository<PaymentEntity>,
+    @InjectRepository(ReservationEntity) private readonly reservations: Repository<ReservationEntity>,
   ) {}
 
   async summary() {
-    const [tables, orders, kitchenOrders, menuItems, inventoryItems, payments] = await Promise.all([
+    const [tables, orders, kitchenOrders, menuItems, inventoryItems, payments, reservations] = await Promise.all([
       this.tables.find(),
       this.orders.find(),
       this.kitchen.find(),
       this.menu.find(),
       this.inventory.find(),
       this.payments.find(),
+      this.reservations.find(),
     ]);
     const count = <T>(items: T[], condition: (item: T) => boolean) => items.filter(condition).length;
 
@@ -59,6 +63,10 @@ export class DashboardService {
       sales: {
         payments: payments.length,
         total: payments.reduce((sum, payment) => sum + Number(payment.amount), 0),
+      },
+      reservations: {
+        pending: count(reservations, (reservation) => reservation.status === ReservationStatus.PENDING),
+        confirmed: count(reservations, (reservation) => reservation.status === ReservationStatus.CONFIRMED),
       },
       lowStock: inventoryItems
         .filter((item) => Number(item.quantity) <= Number(item.minStock))

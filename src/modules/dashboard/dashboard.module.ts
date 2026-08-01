@@ -6,6 +6,7 @@ import { MenuItemEntity } from 'src/core/entities/menu-item.entity';
 import { OrderEntity } from 'src/core/entities/order.entity';
 import { TableEntity } from 'src/core/entities/table.entity';
 import { PaymentEntity } from 'src/core/entities/payment.entity';
+import { ReservationEntity } from 'src/core/entities/reservation.entity';
 import { AuthModule } from '../auth/auth.module';
 import { DashboardController } from './dashboard.controller';
 import { DashboardService } from './dashboard.service';
@@ -13,7 +14,7 @@ import { DashboardService } from './dashboard.service';
 @Module({
   imports: [
     AuthModule,
-    TypeOrmModule.forFeature([TableEntity, OrderEntity, KitchenOrderEntity, MenuItemEntity, InventoryItemEntity, PaymentEntity]),
+    TypeOrmModule.forFeature([TableEntity, OrderEntity, KitchenOrderEntity, MenuItemEntity, InventoryItemEntity, PaymentEntity, ReservationEntity]),
   ],
   controllers: [DashboardController],
   providers: [DashboardService],
