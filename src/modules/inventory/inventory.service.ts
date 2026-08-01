@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateInventoryEntryDto } from 'src/core/dtos/inventory/create-inventory-entry.dto';
 import { CreateInventoryItemDto } from 'src/core/dtos/inventory/create-inventory-item.dto';
@@ -7,7 +7,7 @@ import { UpdateInventoryItemDto } from 'src/core/dtos/inventory/update-inventory
 import { InventoryEntryEntity } from 'src/core/entities/inventory-entry.entity';
 import { InventoryItemEntity } from 'src/core/entities/inventory-item.entity';
 import { InventoryOutputEntity } from 'src/core/entities/inventory-output.entity';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 
 @Injectable()
 export class InventoryService {
@@ -17,11 +17,17 @@ export class InventoryService {
         @InjectRepository(InventoryEntryEntity)
         private readonly entryRepository: Repository<InventoryEntryEntity>,
         @InjectRepository(InventoryOutputEntity)
-        private readonly outputRepository: Repository<InventoryOutputEntity>
+        private readonly outputRepository: Repository<InventoryOutputEntity>,
+        private readonly dataSource: DataSource,
     ) { }
 
     findAllItems() {
         return this.itemRepository.find();    
+    }
+
+    async findLowStock() {
+        const items = await this.itemRepository.find();
+        return items.filter((item) => Number(item.quantity) <= Number(item.minStock));
     }
 
     async findItem(id: string) {
@@ -55,15 +61,21 @@ export class InventoryService {
     }
 
     async createEntry(dto: CreateInventoryEntryDto) {
-        const item = await this.findItem(dto.itemId);
-        const entry = this.entryRepository.create({
-            item,
-            quantity: dto.quantity,
-            note: dto.note
+        return this.dataSource.transaction(async (manager) => {
+            const items = manager.getRepository(InventoryItemEntity);
+            const item = await items.findOne({
+                where: { id: dto.itemId },
+                lock: { mode: 'pessimistic_write' },
+            });
+            if (!item) throw new NotFoundException('Item no encontrado');
+            item.quantity = Number(item.quantity) + dto.quantity;
+            await items.save(item);
+            return manager.save(InventoryEntryEntity, manager.create(InventoryEntryEntity, {
+                item,
+                quantity: dto.quantity,
+                note: dto.note,
+            }));
         });
-        item.quantity += dto.quantity;
-        await this.itemRepository.save(item);
-        return this.entryRepository.save(entry);
     }
 
     findAllOutputs() {
@@ -71,17 +83,23 @@ export class InventoryService {
     }
 
     async createOutput(dto: CreateInvnetoryOutputDto) {
-        const item = await this.findItem(dto.itemId);
-        if (item.quantity < dto.quantity) {
-            throw new NotFoundException('Stock insuficiente en inventario');
-        }
-        const output = this.outputRepository.create({
-            item,
-            quantity: dto.quantity,
-            note: dto.note
+        return this.dataSource.transaction(async (manager) => {
+            const items = manager.getRepository(InventoryItemEntity);
+            const item = await items.findOne({
+                where: { id: dto.itemId },
+                lock: { mode: 'pessimistic_write' },
+            });
+            if (!item) throw new NotFoundException('Item no encontrado');
+            if (Number(item.quantity) < dto.quantity) {
+                throw new BadRequestException('Stock insuficiente en inventario');
+            }
+            item.quantity = Number(item.quantity) - dto.quantity;
+            await items.save(item);
+            return manager.save(InventoryOutputEntity, manager.create(InventoryOutputEntity, {
+                item,
+                quantity: dto.quantity,
+                note: dto.note,
+            }));
         });
-        item.quantity -= dto.quantity;
-        await this.itemRepository.save(item);
-        return this.outputRepository.save(output);
     }
 }

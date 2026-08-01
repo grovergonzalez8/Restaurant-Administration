@@ -16,6 +16,9 @@ export class InventoryItemEntity {
     @Column('decimal', { precision: 10, scale: 2, default: 0 })
     quantity: number;
 
+    @Column('decimal', { precision: 10, scale: 2, default: 5 })
+    minStock: number;
+
     @Column()
     unit: string;
 

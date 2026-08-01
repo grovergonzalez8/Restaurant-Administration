@@ -14,6 +14,11 @@ export class CreateInventoryItemDto {
     @Min(0)
     quantity: number;
 
+    @IsOptional()
+    @IsNumber()
+    @Min(0)
+    minStock?: number;
+
     @IsNotEmpty()
     @IsString()
     unit: string;

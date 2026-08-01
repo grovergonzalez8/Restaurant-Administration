@@ -54,7 +54,7 @@ export class DashboardService {
         unavailable: count(menuItems, (item) => item.status !== MenuStatus.AVAIBLE),
       },
       lowStock: inventoryItems
-        .filter((item) => Number(item.quantity) <= 5)
+        .filter((item) => Number(item.quantity) <= Number(item.minStock))
         .map((item) => ({ id: item.id, name: item.name, quantity: Number(item.quantity), unit: item.unit })),
     };
   }
