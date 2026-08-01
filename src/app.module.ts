@@ -13,6 +13,7 @@ import { InventoryModule } from './modules/inventory/inventory.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     AuthModule,
     RolesModule,
     DashboardModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
