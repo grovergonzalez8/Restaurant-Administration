@@ -8,6 +8,7 @@ import { MenuItemEntity } from '../core/entities/menu-item.entity';
 import { OrderEntity } from '../core/entities/order.entity';
 import { TableEntity } from '../core/entities/table.entity';
 import { UserEntity } from '../core/entities/user.entity';
+import { RecipeItemEntity } from '../core/entities/recipe-item.entity';
 import { KitchenStatus } from '../core/enums/kitchen-status.enum';
 import { MenuStatus } from '../core/enums/menu-status.enum';
 import { OrderStatus } from '../core/enums/order-status.enum';
@@ -27,6 +28,7 @@ async function seedDatabase() {
     const entries = db.getRepository(InventoryEntryEntity);
     const orders = db.getRepository(OrderEntity);
     const kitchen = db.getRepository(KitchenOrderEntity);
+    const recipes = db.getRepository(RecipeItemEntity);
 
     if (!(await tables.count())) {
       await tables.save([
@@ -63,6 +65,19 @@ async function seedDatabase() {
         { name: 'Harina', unit: 'kg', quantity: 25, description: 'Harina para masas' },
       ]);
       await entries.save(items.map((item) => entries.create({ item, quantity: item.quantity, note: 'Inventario inicial de demo' })));
+    }
+
+    if (!(await recipes.count())) {
+      const ingredient = async (name: string) => inventory.findOneByOrFail({ name });
+      const product = async (name: string) => menu.findOneByOrFail({ name });
+      await recipes.save([
+        { menuItem: await product('Hamburguesa Clásica'), inventoryItem: await ingredient('Carne molida'), quantity: 0.2 },
+        { menuItem: await product('Pizza Pepperoni'), inventoryItem: await ingredient('Queso mozzarella'), quantity: 0.25 },
+        { menuItem: await product('Pizza Pepperoni'), inventoryItem: await ingredient('Harina'), quantity: 0.3 },
+        { menuItem: await product('Pasta Alfredo'), inventoryItem: await ingredient('Pechuga de pollo'), quantity: 0.18 },
+        { menuItem: await product('Lomo a la Plancha'), inventoryItem: await ingredient('Papas'), quantity: 0.3 },
+        { menuItem: await product('Limonada de Hierbabuena'), inventoryItem: await ingredient('Limón'), quantity: 0.08 },
+      ]);
     }
 
     if (!(await orders.count())) {

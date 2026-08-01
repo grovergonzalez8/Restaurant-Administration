@@ -12,16 +12,20 @@ import { KitchenStatus } from 'src/core/enums/kitchen-status.enum';
 import { OrderStatus } from 'src/core/enums/order-status.enum';
 import { TableStatus } from 'src/core/enums/table-status.enum';
 import { MenuStatus } from 'src/core/enums/menu-status.enum';
-import { Repository } from 'typeorm';
+import { InventoryItemEntity } from 'src/core/entities/inventory-item.entity';
+import { InventoryOutputEntity } from 'src/core/entities/inventory-output.entity';
+import { InventoryEntryEntity } from 'src/core/entities/inventory-entry.entity';
+import { RecipeItemEntity } from 'src/core/entities/recipe-item.entity';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 
 @Injectable()
 export class OrdersService {
     constructor(
         @InjectRepository(OrderEntity) private ordersRepo: Repository<OrderEntity>,
-        @InjectRepository(OrderItemEntity) private orderItemsRepo: Repository<OrderItemEntity>,
         @InjectRepository(MenuItemEntity) private menuRepo: Repository<MenuItemEntity>,
         @InjectRepository(TableEntity) private tablesRepo: Repository<TableEntity>,
         @InjectRepository(KitchenOrderEntity) private kitchenRepo: Repository<KitchenOrderEntity>,
+        private readonly dataSource: DataSource,
     ) {}
 
     findAll(): Promise<OrderEntity[]> {
@@ -41,76 +45,124 @@ export class OrdersService {
     }
 
     async create(dto: CreateOrderDto, createdBy?: UserEntity): Promise<OrderEntity> {
-        const table = await this.tablesRepo.findOne({ where: { id: dto.tableId } });
-        if (!table) {
-            throw new NotFoundException('Mesa no encontrada');
-        }
-        if (table.status === TableStatus.OUT_OF_SERVICE || table.status === TableStatus.OCCUPIED) {
-            throw new ConflictException('La mesa no está disponible para una nueva orden');
-        }
-
-        const order = new OrderEntity();
-        order.table = table;
-        order.createdBy = createdBy;
-        if (dto.status) {
-            order.status = dto.status;
-        }
-        order.items = [];
-
-        let total = 0;
-
-        for (const item of dto.items) {
-            const product = await this.menuRepo.findOne({ where: { id: item.menuItemId } });
-            if (!product) {
-                throw new NotFoundException(`Producto ${item.menuItemId} no encontrado`);
-            }
-            if (product.status !== MenuStatus.AVAIBLE) {
-                throw new ConflictException(`Producto ${product.name} no está disponible`);
+        return this.dataSource.transaction(async (manager) => {
+            const tables = manager.getRepository(TableEntity);
+            const menu = manager.getRepository(MenuItemEntity);
+            const recipes = manager.getRepository(RecipeItemEntity);
+            const inventory = manager.getRepository(InventoryItemEntity);
+            const outputs = manager.getRepository(InventoryOutputEntity);
+            const table = await tables.findOne({ where: { id: dto.tableId }, lock: { mode: 'pessimistic_write' } });
+            if (!table) throw new NotFoundException('Mesa no encontrada');
+            if ([TableStatus.OUT_OF_SERVICE, TableStatus.OCCUPIED].includes(table.status)) {
+                throw new ConflictException('La mesa no está disponible para una nueva orden');
             }
 
-            const orderItem = new OrderItemEntity();
-            orderItem.menuItem = product;
-            orderItem.quantity = item.quantity;
-            orderItem.unitPrice = product.price;
-            orderItem.subtotal = product.price * item.quantity;
+            const order = manager.create(OrderEntity, { table, createdBy, items: [] });
+            if (dto.status) order.status = dto.status;
+            const consumption = new Map<string, number>();
 
-            total += orderItem.subtotal;
+            for (const item of dto.items) {
+                const product = await menu.findOne({ where: { id: item.menuItemId } });
+                if (!product) throw new NotFoundException(`Producto ${item.menuItemId} no encontrado`);
+                if (product.status !== MenuStatus.AVAIBLE) throw new ConflictException(`Producto ${product.name} no está disponible`);
+                const orderItem = manager.create(OrderItemEntity, {
+                    menuItem: product,
+                    quantity: item.quantity,
+                    unitPrice: product.price,
+                    subtotal: Number(product.price) * item.quantity,
+                });
+                order.items.push(orderItem);
+                const ingredients = await recipes.find({ where: { menuItem: { id: product.id } } });
+                for (const ingredient of ingredients) {
+                    const required = Number(ingredient.quantity) * item.quantity;
+                    consumption.set(ingredient.inventoryItem.id, (consumption.get(ingredient.inventoryItem.id) ?? 0) + required);
+                }
+            }
 
-            order.items.push(orderItem);
+            for (const [itemId, required] of consumption) {
+                const stockItem = await inventory.findOne({ where: { id: itemId }, lock: { mode: 'pessimistic_write' } });
+                if (!stockItem || Number(stockItem.quantity) < required) {
+                    throw new ConflictException('Stock insuficiente para preparar la orden');
+                }
+                stockItem.quantity = Number(stockItem.quantity) - required;
+                await inventory.save(stockItem);
+                await outputs.save(outputs.create({ item: stockItem, quantity: required, note: 'Salida automática por orden' }));
+            }
+
+            order.total = order.items.reduce((total, item) => total + Number(item.subtotal), 0);
+            const savedOrder = await manager.save(OrderEntity, order);
+            table.status = TableStatus.OCCUPIED;
+            await tables.save(table);
+            await manager.save(KitchenOrderEntity, manager.create(KitchenOrderEntity, { order: savedOrder, status: KitchenStatus.PENDING }));
+            return savedOrder;
+        });
+    }
+
+    private async restoreInventory(manager: EntityManager, order: OrderEntity, note: string) {
+        const recipes = manager.getRepository(RecipeItemEntity);
+        const inventory = manager.getRepository(InventoryItemEntity);
+        const entries = manager.getRepository(InventoryEntryEntity);
+        const restoration = new Map<string, number>();
+        for (const orderItem of order.items) {
+            const ingredients = await recipes.find({ where: { menuItem: { id: orderItem.menuItem.id } } });
+            for (const ingredient of ingredients) {
+                const amount = Number(ingredient.quantity) * orderItem.quantity;
+                restoration.set(ingredient.inventoryItem.id, (restoration.get(ingredient.inventoryItem.id) ?? 0) + amount);
+            }
         }
+        for (const [itemId, amount] of restoration) {
+            const item = await inventory.findOne({ where: { id: itemId }, lock: { mode: 'pessimistic_write' } });
+            if (!item) continue;
+            item.quantity = Number(item.quantity) + amount;
+            await inventory.save(item);
+            await entries.save(entries.create({ item, quantity: amount, note }));
+        }
+    }
 
-        order.total = total;
-
-        const savedOrder = await this.ordersRepo.save(order);
-        table.status = TableStatus.OCCUPIED;
-        await this.tablesRepo.save(table);
-        await this.kitchenRepo.save(this.kitchenRepo.create({
-            order: savedOrder,
-            status: KitchenStatus.PENDING,
-        }));
-        return savedOrder;
+    private async findLockedOrder(manager: EntityManager, id: string) {
+        const orders = manager.getRepository(OrderEntity);
+        const locked = await orders.findOne({
+            where: { id },
+            lock: { mode: 'pessimistic_write' },
+            loadEagerRelations: false,
+        });
+        if (!locked) throw new NotFoundException('Orden no encontrada');
+        return orders.findOneOrFail({
+            where: { id },
+            relations: { table: true, items: { menuItem: true } },
+            loadEagerRelations: false,
+        });
     }
 
     async update(id: string, dto: UpdateOrderDto): Promise<OrderEntity> {
-        const order = await this.findOne(id);
-
-        order.status = dto.status;
-        if ([OrderStatus.COMPLETED, OrderStatus.CANCELLED].includes(dto.status)) {
-            order.table.status = TableStatus.FREE;
-            await this.tablesRepo.save(order.table);
-        }
-
-        return this.ordersRepo.save(order);
+        return this.dataSource.transaction(async (manager) => {
+            const tables = manager.getRepository(TableEntity);
+            const orders = manager.getRepository(OrderEntity);
+            const order = await this.findLockedOrder(manager, id);
+            if (dto.status === OrderStatus.CANCELLED && order.status !== OrderStatus.CANCELLED) {
+                await this.restoreInventory(manager, order, `Reposición por cancelación de orden ${order.id}`);
+            }
+            order.status = dto.status;
+            if ([OrderStatus.COMPLETED, OrderStatus.CANCELLED].includes(dto.status)) {
+                order.table.status = TableStatus.FREE;
+                await tables.save(order.table);
+            }
+            return orders.save(order);
+        });
     }
 
     async remove(id: string): Promise<void> {
-        const order = await this.findOne(id);
-        order.table.status = TableStatus.FREE;
-        await this.tablesRepo.save(order.table);
-        const result = await this.ordersRepo.delete(id);
-
-        if(result.affected === 0) {
-            throw new NotFoundException('Order no encontrada');
-        }
+        await this.dataSource.transaction(async (manager) => {
+            const tables = manager.getRepository(TableEntity);
+            const orders = manager.getRepository(OrderEntity);
+            const order = await this.findLockedOrder(manager, id);
+            if (order.status === OrderStatus.COMPLETED) throw new ConflictException('No se puede eliminar una orden cobrada');
+            if (order.status !== OrderStatus.CANCELLED) {
+                await this.restoreInventory(manager, order, `Reposición por eliminación de orden ${order.id}`);
+            }
+            order.table.status = TableStatus.FREE;
+            await tables.save(order.table);
+            await orders.delete(id);
+        });
     }
 }

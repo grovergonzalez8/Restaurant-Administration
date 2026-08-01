@@ -15,6 +15,7 @@ import { RolesModule } from './modules/roles/roles.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { ReservationsModule } from './modules/reservations/reservations.module';
+import { RecipesModule } from './modules/recipes/recipes.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { ReservationsModule } from './modules/reservations/reservations.module';
     DashboardModule,
     PaymentsModule,
     ReservationsModule,
+    RecipesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
