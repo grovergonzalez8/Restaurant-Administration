@@ -16,6 +16,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { ReservationsModule } from './modules/reservations/reservations.module';
 import { RecipesModule } from './modules/recipes/recipes.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { RecipesModule } from './modules/recipes/recipes.module';
     PaymentsModule,
     ReservationsModule,
     RecipesModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
