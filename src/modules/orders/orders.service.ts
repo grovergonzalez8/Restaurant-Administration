@@ -17,6 +17,7 @@ import { InventoryOutputEntity } from 'src/core/entities/inventory-output.entity
 import { InventoryEntryEntity } from 'src/core/entities/inventory-entry.entity';
 import { RecipeItemEntity } from 'src/core/entities/recipe-item.entity';
 import { DataSource, EntityManager, Repository } from 'typeorm';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 @Injectable()
 export class OrdersService {
@@ -26,6 +27,7 @@ export class OrdersService {
         @InjectRepository(TableEntity) private tablesRepo: Repository<TableEntity>,
         @InjectRepository(KitchenOrderEntity) private kitchenRepo: Repository<KitchenOrderEntity>,
         private readonly dataSource: DataSource,
+        private readonly realtime: RealtimeGateway,
     ) {}
 
     findAll(): Promise<OrderEntity[]> {
@@ -45,7 +47,7 @@ export class OrdersService {
     }
 
     async create(dto: CreateOrderDto, createdBy?: UserEntity): Promise<OrderEntity> {
-        return this.dataSource.transaction(async (manager) => {
+        const savedOrder = await this.dataSource.transaction(async (manager) => {
             const tables = manager.getRepository(TableEntity);
             const menu = manager.getRepository(MenuItemEntity);
             const recipes = manager.getRepository(RecipeItemEntity);
@@ -96,6 +98,8 @@ export class OrdersService {
             await manager.save(KitchenOrderEntity, manager.create(KitchenOrderEntity, { order: savedOrder, status: KitchenStatus.PENDING }));
             return savedOrder;
         });
+        this.realtime.emit('order.created', savedOrder);
+        return savedOrder;
     }
 
     private async restoreInventory(manager: EntityManager, order: OrderEntity, note: string) {
@@ -135,7 +139,7 @@ export class OrdersService {
     }
 
     async update(id: string, dto: UpdateOrderDto): Promise<OrderEntity> {
-        return this.dataSource.transaction(async (manager) => {
+        const updatedOrder = await this.dataSource.transaction(async (manager) => {
             const tables = manager.getRepository(TableEntity);
             const orders = manager.getRepository(OrderEntity);
             const order = await this.findLockedOrder(manager, id);
@@ -149,6 +153,8 @@ export class OrdersService {
             }
             return orders.save(order);
         });
+        this.realtime.emit('order.updated', updatedOrder);
+        return updatedOrder;
     }
 
     async remove(id: string): Promise<void> {
@@ -164,5 +170,6 @@ export class OrdersService {
             await tables.save(order.table);
             await orders.delete(id);
         });
+        this.realtime.emit('order.deleted', { id });
     }
 }

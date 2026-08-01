@@ -8,12 +8,14 @@ import { UserEntity } from 'src/core/entities/user.entity';
 import { OrderStatus } from 'src/core/enums/order-status.enum';
 import { TableStatus } from 'src/core/enums/table-status.enum';
 import { DataSource, Repository } from 'typeorm';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 @Injectable()
 export class PaymentsService {
   constructor(
     @InjectRepository(PaymentEntity) private readonly payments: Repository<PaymentEntity>,
     private readonly dataSource: DataSource,
+    private readonly realtime: RealtimeGateway,
   ) {}
 
   findAll() {
@@ -21,7 +23,7 @@ export class PaymentsService {
   }
 
   async create(dto: CreatePaymentDto, createdBy?: UserEntity) {
-    return this.dataSource.transaction(async (manager) => {
+    const payment = await this.dataSource.transaction(async (manager) => {
       const orders = manager.getRepository(OrderEntity);
       const payments = manager.getRepository(PaymentEntity);
       const tables = manager.getRepository(TableEntity);
@@ -50,5 +52,8 @@ export class PaymentsService {
       }
       return payment;
     });
+    this.realtime.emit('payment.created', payment);
+    this.realtime.emit('order.updated', payment.order);
+    return payment;
   }
 }

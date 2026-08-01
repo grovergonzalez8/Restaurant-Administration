@@ -8,6 +8,7 @@ import { InventoryEntryEntity } from 'src/core/entities/inventory-entry.entity';
 import { InventoryItemEntity } from 'src/core/entities/inventory-item.entity';
 import { InventoryOutputEntity } from 'src/core/entities/inventory-output.entity';
 import { DataSource, Repository } from 'typeorm';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 @Injectable()
 export class InventoryService {
@@ -19,6 +20,7 @@ export class InventoryService {
         @InjectRepository(InventoryOutputEntity)
         private readonly outputRepository: Repository<InventoryOutputEntity>,
         private readonly dataSource: DataSource,
+        private readonly realtime: RealtimeGateway,
     ) { }
 
     findAllItems() {
@@ -61,7 +63,7 @@ export class InventoryService {
     }
 
     async createEntry(dto: CreateInventoryEntryDto) {
-        return this.dataSource.transaction(async (manager) => {
+        const entry = await this.dataSource.transaction(async (manager) => {
             const items = manager.getRepository(InventoryItemEntity);
             const item = await items.findOne({
                 where: { id: dto.itemId },
@@ -76,6 +78,8 @@ export class InventoryService {
                 note: dto.note,
             }));
         });
+        this.realtime.emit('inventory.entry', entry);
+        return entry;
     }
 
     findAllOutputs() {
@@ -83,7 +87,7 @@ export class InventoryService {
     }
 
     async createOutput(dto: CreateInvnetoryOutputDto) {
-        return this.dataSource.transaction(async (manager) => {
+        const output = await this.dataSource.transaction(async (manager) => {
             const items = manager.getRepository(InventoryItemEntity);
             const item = await items.findOne({
                 where: { id: dto.itemId },
@@ -101,5 +105,7 @@ export class InventoryService {
                 note: dto.note,
             }));
         });
+        this.realtime.emit('inventory.output', output);
+        return output;
     }
 }

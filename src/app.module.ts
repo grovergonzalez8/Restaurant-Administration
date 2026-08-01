@@ -17,6 +17,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { ReservationsModule } from './modules/reservations/reservations.module';
 import { RecipesModule } from './modules/recipes/recipes.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { RealtimeModule } from './modules/realtime/realtime.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ReportsModule } from './modules/reports/reports.module';
     ReservationsModule,
     RecipesModule,
     ReportsModule,
+    RealtimeModule,
   ],
   controllers: [AppController],
   providers: [AppService],

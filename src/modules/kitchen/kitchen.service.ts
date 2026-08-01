@@ -6,6 +6,7 @@ import { KitchenOrderEntity } from 'src/core/entities/kitchen-order.entity';
 import { OrderEntity } from 'src/core/entities/order.entity';
 import { KitchenStatus } from 'src/core/enums/kitchen-status.enum';
 import { Repository } from 'typeorm';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 @Injectable()
 export class KitchenService {
@@ -13,7 +14,8 @@ export class KitchenService {
         @InjectRepository(KitchenOrderEntity)
         private readonly kitchenRepository: Repository<KitchenOrderEntity>,
         @InjectRepository(OrderEntity)
-        private readonly orderRepository: Repository<OrderEntity>
+        private readonly orderRepository: Repository<OrderEntity>,
+        private readonly realtime: RealtimeGateway,
     ) {}
 
     async create(dto: CreateKitchenOrderDto): Promise<KitchenOrderEntity> {
@@ -27,7 +29,9 @@ export class KitchenService {
         status: KitchenStatus.PENDING,
         });
 
-        return this.kitchenRepository.save(kitchenOrder);
+        const saved = await this.kitchenRepository.save(kitchenOrder);
+        this.realtime.emit('kitchen.created', saved);
+        return saved;
     }
 
     findAll(): Promise<KitchenOrderEntity[]> {
@@ -43,7 +47,9 @@ export class KitchenService {
     async updateStatus(id: string, dto: UpdateKitchenStatusDto): Promise<KitchenOrderEntity> {
         const kitchenOrder = await this.findOne(id);
         kitchenOrder.status = dto.status;
-        return this.kitchenRepository.save(kitchenOrder);
+        const saved = await this.kitchenRepository.save(kitchenOrder);
+        this.realtime.emit('kitchen.updated', saved);
+        return saved;
     }
 
     async remove(id: string): Promise<void> {
