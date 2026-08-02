@@ -1,6 +1,14 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { UserEntity } from './user.entity';
 import { CashSessionStatus } from '../enums/cash-session-status.enum';
+import { PaymentEntity } from './payment.entity';
 
 @Entity('cashSessions')
 export class CashSessionEntity {
@@ -9,6 +17,9 @@ export class CashSessionEntity {
 
   @ManyToOne(() => UserEntity, { eager: true })
   openedBy: UserEntity;
+
+  @OneToMany(() => PaymentEntity, (payment) => payment.cashSession)
+  payments: PaymentEntity[];
 
   @Column('decimal', { precision: 10, scale: 2 })
   openingBalance: number;
@@ -22,7 +33,11 @@ export class CashSessionEntity {
   @Column('decimal', { precision: 10, scale: 2, nullable: true })
   difference?: number;
 
-  @Column({ type: 'enum', enum: CashSessionStatus, default: CashSessionStatus.OPEN })
+  @Column({
+    type: 'enum',
+    enum: CashSessionStatus,
+    default: CashSessionStatus.OPEN,
+  })
   status: CashSessionStatus;
 
   @CreateDateColumn()

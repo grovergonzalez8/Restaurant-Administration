@@ -1,7 +1,14 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { OrderEntity } from './order.entity';
 import { UserEntity } from './user.entity';
 import { PaymentMethod } from '../enums/payment-method.enum';
+import { CashSessionEntity } from './cash-session.entity';
 
 @Entity('payments')
 export class PaymentEntity {
@@ -13,6 +20,12 @@ export class PaymentEntity {
 
   @ManyToOne(() => UserEntity, { nullable: true })
   createdBy?: UserEntity;
+
+  @ManyToOne(() => CashSessionEntity, (session) => session.payments, {
+    nullable: true,
+    onDelete: 'RESTRICT',
+  })
+  cashSession?: CashSessionEntity;
 
   @Column('decimal', { precision: 10, scale: 2 })
   amount: number;
