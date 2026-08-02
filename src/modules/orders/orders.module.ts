@@ -14,9 +14,20 @@ import { RecipeItemEntity } from 'src/core/entities/recipe-item.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([OrderEntity, OrderItemEntity, MenuItemEntity, TableEntity, KitchenOrderEntity, RecipeItemEntity, InventoryItemEntity, InventoryOutputEntity, InventoryEntryEntity])
+    TypeOrmModule.forFeature([
+      OrderEntity,
+      OrderItemEntity,
+      MenuItemEntity,
+      TableEntity,
+      KitchenOrderEntity,
+      RecipeItemEntity,
+      InventoryItemEntity,
+      InventoryOutputEntity,
+      InventoryEntryEntity,
+    ]),
   ],
   controllers: [OrdersController],
-  providers: [OrdersService]
+  providers: [OrdersService],
+  exports: [OrdersService],
 })
 export class OrdersModule {}
