@@ -16,6 +16,12 @@ export class MenuItemEntity {
     @Column({ nullable: true })
     imageUrl?: string;
 
+    @Column({ nullable: true })
+    model3dUrl?: string;
+
+    @Column({ nullable: true })
+    iosModel3dUrl?: string;
+
     @Column('decimal', { precision: 10, scale: 2 })
     price: number;
 

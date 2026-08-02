@@ -19,6 +19,12 @@ export class InventoryController {
         return this.inventoryService.findAllItems();
     }
 
+    @Get('low-stock')
+    @Roles('admin', 'kitchen')
+    findLowStock() {
+        return this.inventoryService.findLowStock();
+    }
+
     @Get('items/:id')
     @Roles('admin', 'kitchen')
     findItem(@Param('id') id: string) {

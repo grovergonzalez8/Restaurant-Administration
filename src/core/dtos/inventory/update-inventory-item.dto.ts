@@ -13,6 +13,11 @@ export class UpdateInventoryItemDto {
     @IsNumber()
     @Min(0)
     quantity?: number;
+
+    @IsOptional()
+    @IsNumber()
+    @Min(0)
+    minStock?: number;
     
     @IsOptional()
     @IsString()

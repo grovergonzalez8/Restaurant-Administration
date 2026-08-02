@@ -13,6 +13,11 @@ import { InventoryModule } from './modules/inventory/inventory.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { ReservationsModule } from './modules/reservations/reservations.module';
+import { RecipesModule } from './modules/recipes/recipes.module';
+import { ReportsModule } from './modules/reports/reports.module';
+import { RealtimeModule } from './modules/realtime/realtime.module';
 
 @Module({
   imports: [
@@ -30,6 +35,11 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     AuthModule,
     RolesModule,
     DashboardModule,
+    PaymentsModule,
+    ReservationsModule,
+    RecipesModule,
+    ReportsModule,
+    RealtimeModule,
   ],
   controllers: [AppController],
   providers: [AppService],
