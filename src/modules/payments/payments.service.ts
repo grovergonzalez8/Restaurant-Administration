@@ -16,6 +16,8 @@ import { DataSource, Repository } from 'typeorm';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { CashSessionEntity } from 'src/core/entities/cash-session.entity';
 import { CashSessionStatus } from 'src/core/enums/cash-session-status.enum';
+import { KitchenOrderEntity } from 'src/core/entities/kitchen-order.entity';
+import { KitchenStatus } from 'src/core/enums/kitchen-status.enum';
 
 @Injectable()
 export class PaymentsService {
@@ -36,6 +38,7 @@ export class PaymentsService {
       const payments = manager.getRepository(PaymentEntity);
       const tables = manager.getRepository(TableEntity);
       const sessions = manager.getRepository(CashSessionEntity);
+      const kitchenOrders = manager.getRepository(KitchenOrderEntity);
       const session = await sessions.findOne({
         where: {
           openedBy: { id: createdBy.id },
@@ -63,6 +66,15 @@ export class PaymentsService {
         throw new BadRequestException('No se puede cobrar una orden cancelada');
       if (order.status === OrderStatus.COMPLETED)
         throw new ConflictException('La orden ya fue cobrada');
+      const kitchenOrder = await kitchenOrders.findOne({
+        where: { order: { id: order.id } },
+        loadEagerRelations: false,
+      });
+      if (!kitchenOrder || kitchenOrder.status !== KitchenStatus.READY) {
+        throw new ConflictException(
+          'La orden debe estar lista en cocina antes de cobrarla',
+        );
+      }
       if (await payments.findOne({ where: { order: { id: order.id } } })) {
         throw new ConflictException('La orden ya tiene un pago registrado');
       }

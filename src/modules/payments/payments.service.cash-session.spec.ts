@@ -10,6 +10,8 @@ import { PaymentMethod } from 'src/core/enums/payment-method.enum';
 import { TableStatus } from 'src/core/enums/table-status.enum';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { PaymentsService } from './payments.service';
+import { KitchenOrderEntity } from 'src/core/entities/kitchen-order.entity';
+import { KitchenStatus } from 'src/core/enums/kitchen-status.enum';
 
 describe('PaymentsService cash session flow', () => {
   const sessions = { findOne: jest.fn() };
@@ -20,12 +22,14 @@ describe('PaymentsService cash session flow', () => {
   };
   const payments = { findOne: jest.fn(), create: jest.fn(), save: jest.fn() };
   const tables = { findOne: jest.fn(), save: jest.fn() };
+  const kitchenOrders = { findOne: jest.fn() };
   const manager = {
     getRepository: jest.fn((entity: unknown) => {
       if (entity === CashSessionEntity) return sessions;
       if (entity === OrderEntity) return orders;
       if (entity === PaymentEntity) return payments;
       if (entity === TableEntity) return tables;
+      if (entity === KitchenOrderEntity) return kitchenOrders;
       throw new Error('Unexpected repository');
     }),
   } as unknown as EntityManager;
@@ -73,6 +77,10 @@ describe('PaymentsService cash session flow', () => {
     sessions.findOne.mockResolvedValue(session);
     orders.findOne.mockResolvedValue(order);
     orders.findOneOrFail.mockResolvedValue(order);
+    kitchenOrders.findOne.mockResolvedValue({
+      id: 'kitchen-1',
+      status: KitchenStatus.READY,
+    });
     payments.findOne.mockResolvedValue(null);
     payments.create.mockReturnValue(payment);
     payments.save.mockResolvedValue(payment);
@@ -84,5 +92,27 @@ describe('PaymentsService cash session flow', () => {
     expect(order.status).toBe(OrderStatus.COMPLETED);
     expect(table.status).toBe(TableStatus.FREE);
     expect(realtimeMock.emit).toHaveBeenCalledWith('payment.created', payment);
+  });
+
+  it('rejects payment while the order is not ready in kitchen', async () => {
+    const session = { id: 'session-1', status: CashSessionStatus.OPEN };
+    const order = {
+      id: 'order-1',
+      status: OrderStatus.IN_PROGRESS,
+      total: 42,
+      table: { id: 'table-1' },
+    };
+    sessions.findOne.mockResolvedValue(session);
+    orders.findOne.mockResolvedValue(order);
+    orders.findOneOrFail.mockResolvedValue(order);
+    kitchenOrders.findOne.mockResolvedValue({
+      id: 'kitchen-1',
+      status: KitchenStatus.IN_PROGRESS,
+    });
+
+    await expect(service.create(dto, user)).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect(payments.save).not.toHaveBeenCalled();
   });
 });
