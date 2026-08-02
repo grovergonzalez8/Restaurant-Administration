@@ -85,7 +85,6 @@ export class OrdersService {
         createdBy,
         items: [],
       });
-      if (dto.status) order.status = dto.status;
       const consumption = new Map<string, number>();
 
       for (const item of dto.items) {
@@ -370,6 +369,20 @@ export class OrdersService {
       const tables = manager.getRepository(TableEntity);
       const orders = manager.getRepository(OrderEntity);
       const order = await this.findLockedOrder(manager, id);
+      const transitions: Record<OrderStatus, OrderStatus[]> = {
+        [OrderStatus.PENDING]: [OrderStatus.IN_PROGRESS, OrderStatus.CANCELLED],
+        [OrderStatus.IN_PROGRESS]: [OrderStatus.CANCELLED],
+        [OrderStatus.COMPLETED]: [],
+        [OrderStatus.CANCELLED]: [],
+      };
+      if (
+        dto.status !== order.status &&
+        !transitions[order.status].includes(dto.status)
+      ) {
+        throw new ConflictException(
+          'Transición de orden no válida; el cobro completa la orden',
+        );
+      }
       if (
         dto.status === OrderStatus.CANCELLED &&
         order.status !== OrderStatus.CANCELLED
