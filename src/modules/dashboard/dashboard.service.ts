@@ -8,6 +8,8 @@ import { TableEntity } from 'src/core/entities/table.entity';
 import { PaymentEntity } from 'src/core/entities/payment.entity';
 import { ReservationEntity } from 'src/core/entities/reservation.entity';
 import { ReservationStatus } from 'src/core/enums/reservation-status.enum';
+import { CashSessionEntity } from 'src/core/entities/cash-session.entity';
+import { CashSessionStatus } from 'src/core/enums/cash-session-status.enum';
 import { KitchenStatus } from 'src/core/enums/kitchen-status.enum';
 import { MenuStatus } from 'src/core/enums/menu-status.enum';
 import { OrderStatus } from 'src/core/enums/order-status.enum';
@@ -24,10 +26,11 @@ export class DashboardService {
     @InjectRepository(InventoryItemEntity) private readonly inventory: Repository<InventoryItemEntity>,
     @InjectRepository(PaymentEntity) private readonly payments: Repository<PaymentEntity>,
     @InjectRepository(ReservationEntity) private readonly reservations: Repository<ReservationEntity>,
+    @InjectRepository(CashSessionEntity) private readonly cashSessions: Repository<CashSessionEntity>,
   ) {}
 
   async summary() {
-    const [tables, orders, kitchenOrders, menuItems, inventoryItems, payments, reservations] = await Promise.all([
+    const [tables, orders, kitchenOrders, menuItems, inventoryItems, payments, reservations, cashSessions] = await Promise.all([
       this.tables.find(),
       this.orders.find(),
       this.kitchen.find(),
@@ -35,6 +38,7 @@ export class DashboardService {
       this.inventory.find(),
       this.payments.find(),
       this.reservations.find(),
+      this.cashSessions.find(),
     ]);
     const count = <T>(items: T[], condition: (item: T) => boolean) => items.filter(condition).length;
 
@@ -67,6 +71,9 @@ export class DashboardService {
       reservations: {
         pending: count(reservations, (reservation) => reservation.status === ReservationStatus.PENDING),
         confirmed: count(reservations, (reservation) => reservation.status === ReservationStatus.CONFIRMED),
+      },
+      cashSessions: {
+        open: count(cashSessions, (session) => session.status === CashSessionStatus.OPEN),
       },
       lowStock: inventoryItems
         .filter((item) => Number(item.quantity) <= Number(item.minStock))
