@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsNumber, Min, IsBoolean, IsEnum } from "class-validator";
+import { IsOptional, IsString, IsNumber, Min, IsEnum, Matches } from "class-validator";
 import { MenuStatus } from "src/core/enums/menu-status.enum";
 
 export class UpdateMenuItemDto {
@@ -13,6 +13,16 @@ export class UpdateMenuItemDto {
     @IsOptional()
     @IsString()
     imageUrl?: string;
+
+    @IsOptional()
+    @IsString()
+    @Matches(/^(https?:\/\/[^\s]+|\/[^\s]+)/, { message: 'model3dUrl debe ser una URL HTTP(S) o una ruta absoluta' })
+    model3dUrl?: string;
+
+    @IsOptional()
+    @IsString()
+    @Matches(/^(https?:\/\/[^\s]+|\/[^\s]+)/, { message: 'iosModel3dUrl debe ser una URL HTTP(S) o una ruta absoluta' })
+    iosModel3dUrl?: string;
 
     @IsOptional()
     @IsNumber()

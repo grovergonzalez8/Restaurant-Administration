@@ -32,6 +32,8 @@ export class MenuService {
             name: dto.name,
             description: dto.description,
             imageUrl: dto.imageUrl,
+            model3dUrl: dto.model3dUrl,
+            iosModel3dUrl: dto.iosModel3dUrl,
             price: dto.price,
             status: dto.status
         });
