@@ -47,6 +47,27 @@ export class PaymentsService {
     }
   }
 
+  private cashAmounts(dto: CreatePaymentDto, total: number) {
+    if (dto.method !== PaymentMethod.CASH) {
+      return { receivedAmount: null, changeAmount: null };
+    }
+    const received = Number(dto.receivedAmount);
+    if (!Number.isFinite(received)) {
+      throw new BadRequestException('Debes ingresar el efectivo recibido');
+    }
+    const totalInCents = Math.round(total * 100);
+    const receivedInCents = Math.round(received * 100);
+    if (receivedInCents < totalInCents) {
+      throw new BadRequestException(
+        'El efectivo recibido no cubre el total de la orden',
+      );
+    }
+    return {
+      receivedAmount: receivedInCents / 100,
+      changeAmount: (receivedInCents - totalInCents) / 100,
+    };
+  }
+
   async checkout(orderId: string, actor: UserEntity) {
     const order = await this.orders.findOne({
       where: { id: orderId },
@@ -114,6 +135,14 @@ export class PaymentsService {
             id: payment.id,
             method: payment.method,
             amount: Number(payment.amount),
+            receivedAmount:
+              payment.receivedAmount == null
+                ? null
+                : Number(payment.receivedAmount),
+            changeAmount:
+              payment.changeAmount == null
+                ? null
+                : Number(payment.changeAmount),
             createdAt: payment.createdAt,
           }
         : null,
@@ -147,6 +176,10 @@ export class PaymentsService {
       issuedAt: payment.createdAt,
       method: payment.method,
       amount: Number(payment.amount),
+      receivedAmount:
+        payment.receivedAmount == null ? null : Number(payment.receivedAmount),
+      changeAmount:
+        payment.changeAmount == null ? null : Number(payment.changeAmount),
       cashSessionId: payment.cashSession?.id ?? null,
       order: {
         id: payment.order.id,
@@ -215,6 +248,7 @@ export class PaymentsService {
         throw new ConflictException(
           'Debes abrir una caja antes de registrar pagos',
         );
+      const cashAmounts = this.cashAmounts(dto, Number(order.total));
       const payment = await payments.save(
         payments.create({
           order,
@@ -222,6 +256,7 @@ export class PaymentsService {
           cashSession: session,
           method: dto.method,
           amount: Number(order.total),
+          ...cashAmounts,
         }),
       );
       order.status = OrderStatus.COMPLETED;
