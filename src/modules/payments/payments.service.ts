@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -30,6 +31,50 @@ export class PaymentsService {
 
   findAll() {
     return this.payments.find({ order: { createdAt: 'DESC' } });
+  }
+
+  async findReceipt(orderId: string, actor: UserEntity) {
+    const payment = await this.payments.findOne({
+      where: { order: { id: orderId } },
+      relations: {
+        order: {
+          table: true,
+          createdBy: true,
+          items: { menuItem: true },
+        },
+        createdBy: true,
+        cashSession: true,
+      },
+      loadEagerRelations: false,
+    });
+    if (!payment) throw new NotFoundException('Pago no encontrado');
+    if (
+      actor.role?.name !== 'admin' &&
+      payment.createdBy?.id !== actor.id &&
+      payment.order.createdBy?.id !== actor.id
+    ) {
+      throw new ForbiddenException('No puedes consultar este comprobante');
+    }
+    return {
+      receiptNumber: payment.id,
+      issuedAt: payment.createdAt,
+      method: payment.method,
+      amount: Number(payment.amount),
+      cashSessionId: payment.cashSession?.id ?? null,
+      order: {
+        id: payment.order.id,
+        createdAt: payment.order.createdAt,
+        tableNumber: payment.order.table.number,
+        total: Number(payment.order.total),
+        items: payment.order.items.map((item) => ({
+          id: item.id,
+          name: item.menuItem.name,
+          quantity: item.quantity,
+          unitPrice: Number(item.unitPrice),
+          subtotal: Number(item.subtotal),
+        })),
+      },
+    };
   }
 
   async create(dto: CreatePaymentDto, createdBy: UserEntity) {

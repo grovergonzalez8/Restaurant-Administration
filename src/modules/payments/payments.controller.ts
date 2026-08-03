@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { CreatePaymentDto } from 'src/core/dtos/payments/create-payment.dto';
 import { UserEntity } from 'src/core/entities/user.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -15,6 +24,15 @@ export class PaymentsController {
   @Roles('admin')
   findAll() {
     return this.paymentsService.findAll();
+  }
+
+  @Get('order/:orderId/receipt')
+  @Roles('admin', 'waiter')
+  findReceipt(
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+    @Req() request: { user: UserEntity },
+  ) {
+    return this.paymentsService.findReceipt(orderId, request.user);
   }
 
   @Post()
