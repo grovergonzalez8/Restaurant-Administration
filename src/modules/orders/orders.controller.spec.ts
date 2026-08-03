@@ -1,18 +1,19 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { UserEntity } from 'src/core/entities/user.entity';
 import { OrdersController } from './orders.controller';
+import { OrdersService } from './orders.service';
 
 describe('OrdersController', () => {
-  let controller: OrdersController;
+  const orders = { findOne: jest.fn() };
+  const controller = new OrdersController(orders as unknown as OrdersService);
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [OrdersController],
-    }).compile();
+  beforeEach(() => jest.clearAllMocks());
 
-    controller = module.get<OrdersController>(OrdersController);
-  });
+  it('passes the authenticated user when reading an order', async () => {
+    const user = { id: 'waiter-1' } as UserEntity;
+    orders.findOne.mockResolvedValue({ id: 'order-1' });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+    await controller.findOne('order-1', { user });
+
+    expect(orders.findOne).toHaveBeenCalledWith('order-1', user);
   });
 });

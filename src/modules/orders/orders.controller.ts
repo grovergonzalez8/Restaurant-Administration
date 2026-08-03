@@ -39,8 +39,11 @@ export class OrdersController {
 
   @Get(':id')
   @Roles('admin', 'kitchen', 'waiter')
-  findOne(@Param('id') id: string) {
-    return this.ordersService.findOne(id);
+  findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() request: { user: UserEntity },
+  ) {
+    return this.ordersService.findOne(id, request.user);
   }
 
   @Post()

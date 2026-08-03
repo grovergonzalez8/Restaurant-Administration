@@ -44,13 +44,22 @@ export class OrdersService {
   }
 
   findMine(userId: string): Promise<OrderEntity[]> {
-    return this.ordersRepo.find({ where: { createdBy: { id: userId } } });
+    return this.ordersRepo.find({
+      where: { createdBy: { id: userId } },
+      order: { createdAt: 'DESC' },
+    });
   }
 
-  async findOne(id: string): Promise<OrderEntity> {
+  async findOne(id: string, actor: UserEntity): Promise<OrderEntity> {
     const order = await this.ordersRepo.findOne({ where: { id } });
     if (!order) {
       throw new NotFoundException('Orden no encontrada');
+    }
+    if (
+      !['admin', 'kitchen'].includes(actor.role?.name) &&
+      order.createdBy?.id !== actor.id
+    ) {
+      throw new ForbiddenException('No puedes consultar esta orden');
     }
     return order;
   }
