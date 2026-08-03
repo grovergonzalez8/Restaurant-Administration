@@ -1,60 +1,165 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ReportPeriodDto } from 'src/core/dtos/reports/report-period.dto';
 import { InventoryEntryEntity } from 'src/core/entities/inventory-entry.entity';
 import { InventoryOutputEntity } from 'src/core/entities/inventory-output.entity';
-import { OrderItemEntity } from 'src/core/entities/order-item.entity';
 import { PaymentEntity } from 'src/core/entities/payment.entity';
 import { PaymentMethod } from 'src/core/enums/payment-method.enum';
-import { OrderStatus } from 'src/core/enums/order-status.enum';
-import { Repository } from 'typeorm';
+import {
+  Between,
+  FindOperator,
+  LessThanOrEqual,
+  MoreThanOrEqual,
+  Repository,
+} from 'typeorm';
 
 @Injectable()
 export class ReportsService {
   constructor(
-    @InjectRepository(PaymentEntity) private readonly payments: Repository<PaymentEntity>,
-    @InjectRepository(OrderItemEntity) private readonly orderItems: Repository<OrderItemEntity>,
-    @InjectRepository(InventoryEntryEntity) private readonly entries: Repository<InventoryEntryEntity>,
-    @InjectRepository(InventoryOutputEntity) private readonly outputs: Repository<InventoryOutputEntity>,
+    @InjectRepository(PaymentEntity)
+    private readonly payments: Repository<PaymentEntity>,
+    @InjectRepository(InventoryEntryEntity)
+    private readonly entries: Repository<InventoryEntryEntity>,
+    @InjectRepository(InventoryOutputEntity)
+    private readonly outputs: Repository<InventoryOutputEntity>,
   ) {}
 
-  private inPeriod(date: Date, period: ReportPeriodDto) {
-    const from = period.from ? new Date(period.from) : undefined;
-    const to = period.to ? new Date(`${period.to}T23:59:59.999Z`) : undefined;
-    return (!from || date >= from) && (!to || date <= to);
+  private parseBoundary(value: string, endOfDay: boolean) {
+    const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value);
+    const date = new Date(
+      dateOnly
+        ? `${value}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}Z`
+        : value,
+    );
+    if (Number.isNaN(date.getTime())) {
+      throw new BadRequestException('Periodo de reporte no válido');
+    }
+    return date;
+  }
+
+  private dateRange(period: ReportPeriodDto): FindOperator<Date> | undefined {
+    const from = period.from ? this.parseBoundary(period.from, false) : null;
+    const to = period.to ? this.parseBoundary(period.to, true) : null;
+    if (from && to && from > to) {
+      throw new BadRequestException(
+        'La fecha inicial no puede ser posterior a la final',
+      );
+    }
+    if (from && to) return Between(from, to);
+    if (from) return MoreThanOrEqual(from);
+    if (to) return LessThanOrEqual(to);
+    return undefined;
   }
 
   async sales(period: ReportPeriodDto) {
-    const payments = (await this.payments.find()).filter((payment) => this.inPeriod(payment.createdAt, period));
-    const byMethod = Object.values(PaymentMethod).reduce<Record<PaymentMethod, number>>((result, method) => {
-      result[method] = 0;
-      return result;
-    }, {} as Record<PaymentMethod, number>);
-    for (const payment of payments) byMethod[payment.method] += Number(payment.amount);
-    return { payments: payments.length, total: payments.reduce((sum, payment) => sum + Number(payment.amount), 0), byMethod };
+    const createdAt = this.dateRange(period);
+    const payments = await this.payments.find({
+      where: createdAt ? { createdAt } : {},
+      order: { createdAt: 'ASC' },
+    });
+    const byMethod = Object.values(PaymentMethod).reduce<
+      Record<PaymentMethod, number>
+    >(
+      (result, method) => {
+        result[method] = 0;
+        return result;
+      },
+      {} as Record<PaymentMethod, number>,
+    );
+    for (const payment of payments) {
+      byMethod[payment.method] += Number(payment.amount);
+    }
+    const total = payments.reduce(
+      (sum, payment) => sum + Number(payment.amount),
+      0,
+    );
+    return {
+      payments: payments.length,
+      total,
+      averageTicket: payments.length ? total / payments.length : 0,
+      byMethod,
+    };
   }
 
   async topProducts(period: ReportPeriodDto) {
-    const items = await this.orderItems.find({ relations: { order: true, menuItem: true } });
-    const products = new Map<string, { name: string; quantity: number; sales: number }>();
-    for (const item of items) {
-      if (item.order.status !== OrderStatus.COMPLETED || !this.inPeriod(item.order.createdAt, period)) continue;
-      const current = products.get(item.menuItem.id) ?? { name: item.menuItem.name, quantity: 0, sales: 0 };
-      current.quantity += item.quantity;
-      current.sales += Number(item.subtotal);
-      products.set(item.menuItem.id, current);
+    const createdAt = this.dateRange(period);
+    const payments = await this.payments.find({
+      where: createdAt ? { createdAt } : {},
+      relations: { order: { items: { menuItem: true } } },
+      loadEagerRelations: false,
+    });
+    const products = new Map<
+      string,
+      { id: string; name: string; quantity: number; sales: number }
+    >();
+    for (const payment of payments) {
+      for (const item of payment.order.items) {
+        const current = products.get(item.menuItem.id) ?? {
+          id: item.menuItem.id,
+          name: item.menuItem.name,
+          quantity: 0,
+          sales: 0,
+        };
+        current.quantity += item.quantity;
+        current.sales += Number(item.subtotal);
+        products.set(item.menuItem.id, current);
+      }
     }
     return [...products.values()].sort((a, b) => b.quantity - a.quantity);
   }
 
   async inventory(period: ReportPeriodDto) {
-    const [entries, outputs] = await Promise.all([this.entries.find(), this.outputs.find()]);
-    const incoming = entries.filter((entry) => this.inPeriod(entry.createdAt, period));
-    const outgoing = outputs.filter((output) => this.inPeriod(output.createdAt, period));
+    const createdAt = this.dateRange(period);
+    const options = {
+      where: createdAt ? { createdAt } : {},
+      relations: { item: true },
+      loadEagerRelations: false,
+    };
+    const [entries, outputs] = await Promise.all([
+      this.entries.find(options),
+      this.outputs.find(options),
+    ]);
+    const items = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        unit: string;
+        entries: number;
+        outputs: number;
+        net: number;
+      }
+    >();
+    const movement = (
+      item: InventoryEntryEntity | InventoryOutputEntity,
+      type: 'entries' | 'outputs',
+    ) => {
+      const current = items.get(item.item.id) ?? {
+        id: item.item.id,
+        name: item.item.name,
+        unit: item.item.unit,
+        entries: 0,
+        outputs: 0,
+        net: 0,
+      };
+      const quantity = Number(item.quantity);
+      current[type] += quantity;
+      current.net += type === 'entries' ? quantity : -quantity;
+      items.set(item.item.id, current);
+    };
+    entries.forEach((entry) => movement(entry, 'entries'));
+    outputs.forEach((output) => movement(output, 'outputs'));
     return {
-      entries: incoming.reduce((sum, entry) => sum + Number(entry.quantity), 0),
-      outputs: outgoing.reduce((sum, output) => sum + Number(output.quantity), 0),
-      movements: { entries: incoming.length, outputs: outgoing.length },
+      entries: entries.reduce(
+        (total, entry) => total + Number(entry.quantity),
+        0,
+      ),
+      outputs: outputs.reduce(
+        (total, output) => total + Number(output.quantity),
+        0,
+      ),
+      movements: { entries: entries.length, outputs: outputs.length },
+      items: [...items.values()].sort((a, b) => a.name.localeCompare(b.name)),
     };
   }
 }

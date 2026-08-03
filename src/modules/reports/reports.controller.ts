@@ -12,11 +12,17 @@ export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
   @Get('sales')
-  sales(@Query() period: ReportPeriodDto) { return this.reportsService.sales(period); }
+  sales(@Query() period: ReportPeriodDto) {
+    return this.reportsService.sales(period);
+  }
 
   @Get('top-products')
-  topProducts(@Query() period: ReportPeriodDto) { return this.reportsService.topProducts(period); }
+  topProducts(@Query() period: ReportPeriodDto) {
+    return this.reportsService.topProducts(period);
+  }
 
   @Get('inventory')
-  inventory(@Query() period: ReportPeriodDto) { return this.reportsService.inventory(period); }
+  inventory(@Query() period: ReportPeriodDto) {
+    return this.reportsService.inventory(period);
+  }
 }
