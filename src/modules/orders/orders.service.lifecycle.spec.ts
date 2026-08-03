@@ -72,4 +72,22 @@ describe('OrdersService lifecycle', () => {
     expect(result.status).toBe(OrderStatus.IN_PROGRESS);
     expect(orders.save).toHaveBeenCalledWith(order);
   });
+
+  it('allows kitchen to mark an order ready', async () => {
+    const order = {
+      id: 'order-1',
+      status: OrderStatus.IN_PROGRESS,
+      table: { id: 'table-1' },
+      items: [],
+    };
+    orders.findOne.mockResolvedValue({ id: order.id });
+    orders.findOneOrFail.mockResolvedValue(order);
+    orders.save.mockResolvedValue(order);
+
+    const result = await service.update(order.id, {
+      status: OrderStatus.READY,
+    });
+
+    expect(result.status).toBe(OrderStatus.READY);
+  });
 });

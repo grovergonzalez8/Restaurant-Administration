@@ -2,6 +2,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateKitchenOrderDto } from 'src/core/dtos/kitchen/create-kitchen-order.dto';
@@ -15,7 +16,7 @@ import { OrdersService } from '../orders/orders.service';
 import { OrderStatus } from 'src/core/enums/order-status.enum';
 
 @Injectable()
-export class KitchenService {
+export class KitchenService implements OnModuleInit {
   constructor(
     @InjectRepository(KitchenOrderEntity)
     private readonly kitchenRepository: Repository<KitchenOrderEntity>,
@@ -24,6 +25,19 @@ export class KitchenService {
     private readonly realtime: RealtimeGateway,
     private readonly ordersService: OrdersService,
   ) {}
+
+  async onModuleInit() {
+    const readyTickets = await this.kitchenRepository.find({
+      where: { status: KitchenStatus.READY },
+    });
+    for (const ticket of readyTickets) {
+      if (ticket.order.status === OrderStatus.IN_PROGRESS) {
+        await this.ordersService.update(ticket.order.id, {
+          status: OrderStatus.READY,
+        });
+      }
+    }
+  }
 
   async create(dto: CreateKitchenOrderDto): Promise<KitchenOrderEntity> {
     const order = await this.orderRepository.findOne({
@@ -95,6 +109,11 @@ export class KitchenService {
     if (dto.status === KitchenStatus.IN_PROGRESS) {
       await this.ordersService.update(kitchenOrder.order.id, {
         status: OrderStatus.IN_PROGRESS,
+      });
+    }
+    if (dto.status === KitchenStatus.READY) {
+      await this.ordersService.update(kitchenOrder.order.id, {
+        status: OrderStatus.READY,
       });
     }
     if (dto.status === KitchenStatus.CANCELLED) {

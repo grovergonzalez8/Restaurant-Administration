@@ -371,7 +371,8 @@ export class OrdersService {
       const order = await this.findLockedOrder(manager, id);
       const transitions: Record<OrderStatus, OrderStatus[]> = {
         [OrderStatus.PENDING]: [OrderStatus.IN_PROGRESS, OrderStatus.CANCELLED],
-        [OrderStatus.IN_PROGRESS]: [OrderStatus.CANCELLED],
+        [OrderStatus.IN_PROGRESS]: [OrderStatus.READY, OrderStatus.CANCELLED],
+        [OrderStatus.READY]: [OrderStatus.CANCELLED],
         [OrderStatus.COMPLETED]: [],
         [OrderStatus.CANCELLED]: [],
       };
