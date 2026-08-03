@@ -6,7 +6,10 @@ import {
   IsUUID,
   Min,
   ArrayMinSize,
+  Equals,
+  IsOptional,
 } from 'class-validator';
+import { OrderStatus } from 'src/core/enums/order-status.enum';
 
 class OrderItemDto {
   @IsUUID()
@@ -20,6 +23,10 @@ class OrderItemDto {
 export class CreateOrderDto {
   @IsUUID()
   tableId: string;
+
+  @IsOptional()
+  @Equals(OrderStatus.PENDING)
+  status?: OrderStatus.PENDING;
 
   @IsArray()
   @ArrayMinSize(1)
