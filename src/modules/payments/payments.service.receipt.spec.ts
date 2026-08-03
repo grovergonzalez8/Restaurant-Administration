@@ -3,6 +3,9 @@ import { DataSource, Repository } from 'typeorm';
 import { PaymentEntity } from 'src/core/entities/payment.entity';
 import { UserEntity } from 'src/core/entities/user.entity';
 import { PaymentMethod } from 'src/core/enums/payment-method.enum';
+import { OrderEntity } from 'src/core/entities/order.entity';
+import { KitchenOrderEntity } from 'src/core/entities/kitchen-order.entity';
+import { CashSessionEntity } from 'src/core/entities/cash-session.entity';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { PaymentsService } from './payments.service';
 
@@ -10,6 +13,9 @@ describe('PaymentsService receipt', () => {
   const payments = { findOne: jest.fn() };
   const service = new PaymentsService(
     payments as unknown as Repository<PaymentEntity>,
+    {} as Repository<OrderEntity>,
+    {} as Repository<KitchenOrderEntity>,
+    {} as Repository<CashSessionEntity>,
     {} as DataSource,
     {} as RealtimeGateway,
   );

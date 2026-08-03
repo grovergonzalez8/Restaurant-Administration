@@ -19,18 +19,105 @@ import { CashSessionEntity } from 'src/core/entities/cash-session.entity';
 import { CashSessionStatus } from 'src/core/enums/cash-session-status.enum';
 import { KitchenOrderEntity } from 'src/core/entities/kitchen-order.entity';
 import { KitchenStatus } from 'src/core/enums/kitchen-status.enum';
+import { PaymentMethod } from 'src/core/enums/payment-method.enum';
+import { PaymentCheckoutState } from 'src/core/enums/payment-checkout-state.enum';
 
 @Injectable()
 export class PaymentsService {
   constructor(
     @InjectRepository(PaymentEntity)
     private readonly payments: Repository<PaymentEntity>,
+    @InjectRepository(OrderEntity)
+    private readonly orders: Repository<OrderEntity>,
+    @InjectRepository(KitchenOrderEntity)
+    private readonly kitchenOrders: Repository<KitchenOrderEntity>,
+    @InjectRepository(CashSessionEntity)
+    private readonly sessions: Repository<CashSessionEntity>,
     private readonly dataSource: DataSource,
     private readonly realtime: RealtimeGateway,
   ) {}
 
   findAll() {
     return this.payments.find({ order: { createdAt: 'DESC' } });
+  }
+
+  private assertOrderAccess(order: OrderEntity, actor: UserEntity) {
+    if (actor.role?.name !== 'admin' && order.createdBy?.id !== actor.id) {
+      throw new ForbiddenException('No puedes cobrar esta orden');
+    }
+  }
+
+  async checkout(orderId: string, actor: UserEntity) {
+    const order = await this.orders.findOne({
+      where: { id: orderId },
+      relations: { table: true, createdBy: true },
+      loadEagerRelations: false,
+    });
+    if (!order) throw new NotFoundException('Orden no encontrada');
+    this.assertOrderAccess(order, actor);
+    const [kitchenOrder, payment, session] = await Promise.all([
+      this.kitchenOrders.findOne({
+        where: { order: { id: order.id } },
+        loadEagerRelations: false,
+      }),
+      this.payments.findOne({ where: { order: { id: order.id } } }),
+      this.sessions.findOne({
+        where: {
+          openedBy: { id: actor.id },
+          status: CashSessionStatus.OPEN,
+        },
+      }),
+    ]);
+    let state: PaymentCheckoutState;
+    let message: string;
+    if (payment || order.status === OrderStatus.COMPLETED) {
+      state = PaymentCheckoutState.PAID;
+      message = 'La orden ya fue cobrada';
+    } else if (order.status === OrderStatus.CANCELLED) {
+      state = PaymentCheckoutState.CANCELLED;
+      message = 'La orden está cancelada';
+    } else if (
+      order.status !== OrderStatus.READY ||
+      kitchenOrder?.status !== KitchenStatus.READY
+    ) {
+      state = PaymentCheckoutState.WAITING_KITCHEN;
+      message = 'Espera a que cocina marque la orden como lista';
+    } else if (!session) {
+      state = PaymentCheckoutState.OPEN_CASH_SESSION;
+      message = 'Abre tu caja para registrar el pago';
+    } else {
+      state = PaymentCheckoutState.READY_TO_PAY;
+      message = 'Selecciona el método cuando el cliente realice el pago';
+    }
+    return {
+      orderId: order.id,
+      orderStatus: order.status,
+      kitchenStatus: kitchenOrder?.status ?? null,
+      tableNumber: order.table.number,
+      total: Number(order.total),
+      state,
+      message,
+      canPay: state === PaymentCheckoutState.READY_TO_PAY,
+      methods:
+        state === PaymentCheckoutState.READY_TO_PAY
+          ? Object.values(PaymentMethod)
+          : [],
+      cashSession: session
+        ? {
+            id: session.id,
+            openedAt: session.openedAt,
+            openingBalance: Number(session.openingBalance),
+          }
+        : null,
+      payment: payment
+        ? {
+            id: payment.id,
+            method: payment.method,
+            amount: Number(payment.amount),
+            createdAt: payment.createdAt,
+          }
+        : null,
+    };
   }
 
   async findReceipt(orderId: string, actor: UserEntity) {
@@ -84,18 +171,6 @@ export class PaymentsService {
       const tables = manager.getRepository(TableEntity);
       const sessions = manager.getRepository(CashSessionEntity);
       const kitchenOrders = manager.getRepository(KitchenOrderEntity);
-      const session = await sessions.findOne({
-        where: {
-          openedBy: { id: createdBy.id },
-          status: CashSessionStatus.OPEN,
-        },
-        lock: { mode: 'pessimistic_write' },
-        loadEagerRelations: false,
-      });
-      if (!session)
-        throw new ConflictException(
-          'Debes abrir una caja antes de registrar pagos',
-        );
       const lockedOrder = await orders.findOne({
         where: { id: dto.orderId },
         lock: { mode: 'pessimistic_write' },
@@ -104,13 +179,18 @@ export class PaymentsService {
       if (!lockedOrder) throw new NotFoundException('Orden no encontrada');
       const order = await orders.findOneOrFail({
         where: { id: dto.orderId },
-        relations: { table: true },
+        relations: { table: true, createdBy: true },
         loadEagerRelations: false,
       });
+      this.assertOrderAccess(order, createdBy);
       if (order.status === OrderStatus.CANCELLED)
         throw new BadRequestException('No se puede cobrar una orden cancelada');
       if (order.status === OrderStatus.COMPLETED)
         throw new ConflictException('La orden ya fue cobrada');
+      if (order.status !== OrderStatus.READY)
+        throw new ConflictException(
+          'La orden debe estar lista antes de registrar el pago',
+        );
       const kitchenOrder = await kitchenOrders.findOne({
         where: { order: { id: order.id } },
         loadEagerRelations: false,
@@ -123,6 +203,18 @@ export class PaymentsService {
       if (await payments.findOne({ where: { order: { id: order.id } } })) {
         throw new ConflictException('La orden ya tiene un pago registrado');
       }
+      const session = await sessions.findOne({
+        where: {
+          openedBy: { id: createdBy.id },
+          status: CashSessionStatus.OPEN,
+        },
+        lock: { mode: 'pessimistic_write' },
+        loadEagerRelations: false,
+      });
+      if (!session)
+        throw new ConflictException(
+          'Debes abrir una caja antes de registrar pagos',
+        );
       const payment = await payments.save(
         payments.create({
           order,

@@ -42,15 +42,29 @@ describe('PaymentsService cash session flow', () => {
   const realtime = realtimeMock as unknown as RealtimeGateway;
   const service = new PaymentsService(
     {} as Repository<PaymentEntity>,
+    {} as Repository<OrderEntity>,
+    {} as Repository<KitchenOrderEntity>,
+    {} as Repository<CashSessionEntity>,
     dataSource,
     realtime,
   );
-  const user = { id: 'user-1' } as never;
+  const user = { id: 'user-1', role: { name: 'waiter' } } as never;
   const dto = { orderId: 'order-1', method: PaymentMethod.CASH };
 
   beforeEach(() => jest.clearAllMocks());
 
   it('rejects payments without an open cash session', async () => {
+    const order = {
+      id: 'order-1',
+      status: OrderStatus.READY,
+      total: 42,
+      table: { id: 'table-1' },
+      createdBy: user,
+    };
+    orders.findOne.mockResolvedValue(order);
+    orders.findOneOrFail.mockResolvedValue(order);
+    kitchenOrders.findOne.mockResolvedValue({ status: KitchenStatus.READY });
+    payments.findOne.mockResolvedValue(null);
     sessions.findOne.mockResolvedValue(null);
 
     await expect(service.create(dto, user)).rejects.toBeInstanceOf(
@@ -63,9 +77,10 @@ describe('PaymentsService cash session flow', () => {
     const table = { id: 'table-1', status: TableStatus.OCCUPIED };
     const order = {
       id: 'order-1',
-      status: OrderStatus.IN_PROGRESS,
+      status: OrderStatus.READY,
       total: 42,
       table,
+      createdBy: user,
     };
     const payment = {
       id: 'payment-1',
@@ -101,6 +116,7 @@ describe('PaymentsService cash session flow', () => {
       status: OrderStatus.IN_PROGRESS,
       total: 42,
       table: { id: 'table-1' },
+      createdBy: user,
     };
     sessions.findOne.mockResolvedValue(session);
     orders.findOne.mockResolvedValue(order);

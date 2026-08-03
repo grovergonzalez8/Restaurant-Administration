@@ -35,6 +35,15 @@ export class PaymentsController {
     return this.paymentsService.findReceipt(orderId, request.user);
   }
 
+  @Get('order/:orderId/checkout')
+  @Roles('admin', 'waiter')
+  checkout(
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+    @Req() request: { user: UserEntity },
+  ) {
+    return this.paymentsService.checkout(orderId, request.user);
+  }
+
   @Post()
   @Roles('admin', 'waiter')
   create(@Body() dto: CreatePaymentDto, @Req() request: { user: UserEntity }) {
