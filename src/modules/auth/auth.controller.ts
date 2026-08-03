@@ -1,35 +1,35 @@
-import { Body, Controller, Get, Post, UseGuards, Request } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { CreateUserDto } from 'src/core/dtos/users/create-user.dto';
 import { LoginUserDto } from 'src/core/dtos/login/login.dto';
+import { UserEntity } from 'src/core/entities/user.entity';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
-const withoutPasswordHash = <T extends { passwordHash: string }>(user: T) => {
-    const { passwordHash, ...safeUser } = user;
-    return safeUser;
+const withoutPasswordHash = <T extends { passwordHash?: string }>(user: T) => {
+  const safeUser = { ...user };
+  delete safeUser.passwordHash;
+  return safeUser;
 };
 
 @Controller('auth')
 export class AuthController {
+  constructor(private authService: AuthService) {}
 
-    constructor(private authService: AuthService) {}
+  @Post('login')
+  async login(@Body() dto: LoginUserDto) {
+    const result = await this.authService.login(dto);
+    return { ...result, user: withoutPasswordHash(result.user) };
+  }
 
-    @Post('register')
-    async register(@Body() dto: CreateUserDto) {
-        return withoutPasswordHash(
-            await this.authService.register({ ...dto, roleId: undefined }),
-        );
-    }
-
-    @Post('login')
-    async login(@Body() dto: LoginUserDto) {
-        const result = await this.authService.login(dto);
-        return { ...result, user: withoutPasswordHash(result.user) };
-    }
-
-    @UseGuards(JwtAuthGuard)
-    @Get('profile')
-    async profile(@Request() req) {
-        return withoutPasswordHash(req.user);
-    }
+  @UseGuards(JwtAuthGuard)
+  @Get('profile')
+  profile(@Request() req: { user: UserEntity }) {
+    return withoutPasswordHash(req.user);
+  }
 }

@@ -8,7 +8,7 @@ import { UserEntity } from 'src/core/entities/user.entity';
 import { JwtStrategy } from './jwt.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RolesGuard } from './roles.guard';
-import { RoleEntity } from 'src/core/entities/role.entity';
+import { getJwtSecret } from './jwt.config';
 
 @Module({
   imports: [
@@ -18,11 +18,13 @@ import { RoleEntity } from 'src/core/entities/role.entity';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService): JwtModuleOptions => ({
-        secret: config.get<string>('JWT_SECRET', 'change_this_secret'),
-        signOptions: { expiresIn: config.get<any>('JWT_EXPIRES_IN', '8h') },
-      })
+        secret: getJwtSecret(config),
+        signOptions: {
+          expiresIn: config.get('JWT_EXPIRES_IN', '8h'),
+        },
+      }),
     }),
-    TypeOrmModule.forFeature([UserEntity, RoleEntity]),
+    TypeOrmModule.forFeature([UserEntity]),
   ],
   providers: [AuthService, JwtStrategy, RolesGuard],
   controllers: [AuthController],

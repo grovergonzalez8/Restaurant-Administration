@@ -1,18 +1,30 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
 
 describe('AuthController', () => {
-  let controller: AuthController;
+  const auth = { login: jest.fn() };
+  const controller = new AuthController(auth as unknown as AuthService);
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [AuthController],
-    }).compile();
+  beforeEach(() => jest.clearAllMocks());
 
-    controller = module.get<AuthController>(AuthController);
-  });
+  it('never exposes the password hash on login', async () => {
+    auth.login.mockResolvedValue({
+      access_token: 'token',
+      user: {
+        id: 'user-1',
+        email: 'waiter@restaurant.test',
+        passwordHash: 'secret-hash',
+      },
+    });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+    const result = await controller.login({
+      email: 'waiter@restaurant.test',
+      password: 'Waiter123*',
+    });
+
+    expect(result).toEqual({
+      access_token: 'token',
+      user: { id: 'user-1', email: 'waiter@restaurant.test' },
+    });
   });
 });
