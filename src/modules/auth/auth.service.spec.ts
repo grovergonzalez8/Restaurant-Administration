@@ -27,6 +27,7 @@ describe('AuthService', () => {
       id: 'user-1',
       email: 'waiter@restaurant.test',
       passwordHash: 'hash',
+      isActive: true,
       role: { name: 'waiter' },
     };
     users.findOne.mockResolvedValue(user);
@@ -52,5 +53,33 @@ describe('AuthService', () => {
     await expect(
       service.login({ email: 'missing@restaurant.test', password: 'wrong' }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('rejects credentials for inactive staff', async () => {
+    users.findOne.mockResolvedValue({
+      id: 'user-1',
+      passwordHash: 'hash',
+      isActive: false,
+      role: { name: 'waiter' },
+    });
+
+    await expect(
+      service.login({
+        email: 'waiter@restaurant.test',
+        password: 'Waiter123*',
+      }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(compare).not.toHaveBeenCalled();
+  });
+
+  it('only resolves active users for authenticated requests', async () => {
+    users.findOne.mockResolvedValue(null);
+
+    await service.findById('user-1');
+
+    expect(users.findOne).toHaveBeenCalledWith({
+      where: { id: 'user-1', isActive: true },
+      relations: ['role'],
+    });
   });
 });

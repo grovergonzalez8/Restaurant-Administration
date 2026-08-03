@@ -24,12 +24,13 @@ export class AuthService {
         'email',
         'passwordHash',
         'phone',
+        'isActive',
         'createdAt',
         'updatedAt',
       ],
     });
 
-    if (!user) {
+    if (!user || !user.isActive) {
       return null;
     }
 
@@ -60,7 +61,7 @@ export class AuthService {
 
   async findById(id: string) {
     const user = await this.usersRepository.findOne({
-      where: { id },
+      where: { id, isActive: true },
       relations: ['role'],
     });
 

@@ -1,34 +1,46 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from "typeorm";
-import { RoleEntity } from "./role.entity";
-import { OrderEntity } from "./order.entity";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+} from 'typeorm';
+import { RoleEntity } from './role.entity';
+import { OrderEntity } from './order.entity';
 
 @Entity('users')
 export class UserEntity {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-    @Column()
-    name: string;
+  @Column()
+  name: string;
 
-    @Column({ unique: true })
-    email: string;
+  @Column({ unique: true })
+  email: string;
 
-    @Column({ select: false })
-    passwordHash: string;
+  @Column({ select: false })
+  passwordHash: string;
 
-    @Column({ nullable: true })
-    phone: string;
+  @Column({ nullable: true })
+  phone: string;
 
-    @ManyToOne(() => RoleEntity, { eager: true })
-    @JoinColumn({ name: 'roleId' })
-    role: RoleEntity;
+  @Column({ default: true })
+  isActive: boolean;
 
-    @OneToMany(() => OrderEntity, order => order.createdBy)
-    orders: OrderEntity[];
+  @ManyToOne(() => RoleEntity, { eager: true })
+  @JoinColumn({ name: 'roleId' })
+  role: RoleEntity;
 
-    @CreateDateColumn()
-    createdAt: Date;
+  @OneToMany(() => OrderEntity, (order) => order.createdBy)
+  orders: OrderEntity[];
 
-    @UpdateDateColumn()
-    updatedAt: Date;
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }
