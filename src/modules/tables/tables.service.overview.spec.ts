@@ -3,6 +3,7 @@ import { TableEntity } from 'src/core/entities/table.entity';
 import { OrderStatus } from 'src/core/enums/order-status.enum';
 import { TableStatus } from 'src/core/enums/table-status.enum';
 import { TablesService } from './tables.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 describe('TablesService operational overview', () => {
   const query = {
@@ -14,6 +15,7 @@ describe('TablesService operational overview', () => {
   const repository = { createQueryBuilder: jest.fn() };
   const service = new TablesService(
     repository as unknown as Repository<TableEntity>,
+    { emit: jest.fn() } as unknown as RealtimeGateway,
   );
 
   beforeEach(() => {

@@ -10,11 +10,13 @@ import { TableEntity } from 'src/core/entities/table.entity';
 import { TableStatus } from 'src/core/enums/table-status.enum';
 import { OrderStatus } from 'src/core/enums/order-status.enum';
 import { Repository } from 'typeorm';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 @Injectable()
 export class TablesService {
   constructor(
     @InjectRepository(TableEntity) private tablesRepo: Repository<TableEntity>,
+    private readonly realtime: RealtimeGateway,
   ) {}
 
   findAll(): Promise<TableEntity[]> {
@@ -82,20 +84,47 @@ export class TablesService {
       throw new ConflictException('Ya existe una mesa con este numero');
     }
 
-    const table = this.tablesRepo.create(dto);
-    return this.tablesRepo.save(table);
+    const table = await this.tablesRepo.save(this.tablesRepo.create(dto));
+    this.realtime.emit('table.created', table);
+    return table;
   }
 
   async update(id: string, dto: UpdateTableDto): Promise<TableEntity> {
     const table = await this.findOne(id);
+    if (table.status === TableStatus.OCCUPIED) {
+      throw new ConflictException('No se puede modificar una mesa ocupada');
+    }
+    if (dto.number !== undefined && dto.number !== table.number) {
+      const duplicate = await this.tablesRepo.findOne({
+        where: { number: dto.number },
+      });
+      if (duplicate) {
+        throw new ConflictException('Ya existe una mesa con este número');
+      }
+    }
     Object.assign(table, dto);
-    return this.tablesRepo.save(table);
+    const saved = await this.tablesRepo.save(table);
+    this.realtime.emit('table.updated', saved);
+    return saved;
   }
 
   async remove(id: string): Promise<void> {
-    const result = await this.tablesRepo.delete(id);
-    if (result.affected === 0) {
+    const table = await this.tablesRepo.findOne({
+      where: { id },
+      relations: { orders: true, reservations: true },
+    });
+    if (!table) {
       throw new NotFoundException('Mesa no encontrada para eliminar');
     }
+    if (table.status === TableStatus.OCCUPIED) {
+      throw new ConflictException('No se puede eliminar una mesa ocupada');
+    }
+    if (table.orders.length || table.reservations.length) {
+      throw new ConflictException(
+        'No se puede eliminar una mesa con historial; márcala fuera de servicio',
+      );
+    }
+    await this.tablesRepo.delete(id);
+    this.realtime.emit('table.deleted', { id });
   }
 }

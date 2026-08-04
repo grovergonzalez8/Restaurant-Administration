@@ -1,15 +1,17 @@
-import { IsNumber, IsOptional, IsEnum } from "class-validator";
-import { TableStatus } from "src/core/enums/table-status.enum";
+import { IsInt, IsOptional, IsIn, Min } from 'class-validator';
+import { TableStatus } from 'src/core/enums/table-status.enum';
 
 export class CreateTableDto {
-    @IsNumber()
-    number: number;
+  @IsInt()
+  @Min(1)
+  number: number;
 
-    @IsNumber()
-    @IsOptional()
-    capacity?: number;
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  capacity?: number;
 
-    @IsEnum(TableStatus)
-    @IsOptional()
-    status?: TableStatus;
+  @IsIn([TableStatus.FREE, TableStatus.OUT_OF_SERVICE])
+  @IsOptional()
+  status?: TableStatus;
 }
