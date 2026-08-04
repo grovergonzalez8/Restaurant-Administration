@@ -1,4 +1,11 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { TableEntity } from './table.entity';
 import { ReservationStatus } from '../enums/reservation-status.enum';
 
@@ -7,7 +14,7 @@ export class ReservationEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => TableEntity, { eager: true })
+  @ManyToOne(() => TableEntity, { eager: true, nullable: false })
   table: TableEntity;
 
   @Column()
@@ -25,7 +32,11 @@ export class ReservationEntity {
   @Column({ type: 'timestamp' })
   reservationAt: Date;
 
-  @Column({ type: 'enum', enum: ReservationStatus, default: ReservationStatus.PENDING })
+  @Column({
+    type: 'enum',
+    enum: ReservationStatus,
+    default: ReservationStatus.PENDING,
+  })
   status: ReservationStatus;
 
   @Column({ nullable: true })

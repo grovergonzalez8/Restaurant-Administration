@@ -1,24 +1,30 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { InventoryItemEntity } from "./inventory-item.entity";
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { InventoryItemEntity } from './inventory-item.entity';
 
 @Entity('inventoryOutputs')
 export class InventoryOutputEntity {
- 
-    @PrimaryGeneratedColumn('uuid')
-    id: string; 
-    
-    @ManyToOne(() => InventoryItemEntity, { eager: true })
-    item: InventoryItemEntity;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-    @Column('decimal', { precision: 10, scale: 2 })
-    quantity: number;
+  @ManyToOne(() => InventoryItemEntity, { eager: true, nullable: false })
+  item: InventoryItemEntity;
 
-    @Column({ nullable: true })
-    note?: string;  
-    
-    @CreateDateColumn()
-    createdAt: Date;
+  @Column('decimal', { precision: 10, scale: 2 })
+  quantity: number;
 
-    @UpdateDateColumn()
-    updatedAt: Date;
+  @Column({ nullable: true })
+  note?: string;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

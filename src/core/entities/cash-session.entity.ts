@@ -15,7 +15,7 @@ export class CashSessionEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => UserEntity, { eager: true })
+  @ManyToOne(() => UserEntity, { eager: true, nullable: false })
   openedBy: UserEntity;
 
   @OneToMany(() => PaymentEntity, (payment) => payment.cashSession)

@@ -31,6 +31,24 @@
 $ npm install
 ```
 
+Configure `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME` and
+`JWT_SECRET` in `.env` before starting the API.
+
+## Database migrations
+
+Production starts with schema synchronization disabled and automatically runs
+pending migrations. For a fresh database, run them manually with:
+
+```bash
+$ npm run migration:show
+$ npm run migration:run
+```
+
+If an existing database was previously created by `synchronize`, back it up and
+run `npm run typeorm -- schema:log`. Reconcile every reported difference first;
+only when the schema is up to date, register the baseline once with
+`npm run migration:run -- --fake` before deploying this version.
+
 ## Compile and run the project
 
 ```bash

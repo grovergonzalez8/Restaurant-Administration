@@ -15,7 +15,11 @@ export class PaymentEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => OrderEntity, { eager: true, onDelete: 'RESTRICT' })
+  @ManyToOne(() => OrderEntity, {
+    eager: true,
+    onDelete: 'RESTRICT',
+    nullable: false,
+  })
   order: OrderEntity;
 
   @ManyToOne(() => UserEntity, { nullable: true })
