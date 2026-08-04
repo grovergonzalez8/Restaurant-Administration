@@ -9,6 +9,7 @@ import { UpdateTableDto } from 'src/core/dtos/tables/update-table.dto';
 import { TableEntity } from 'src/core/entities/table.entity';
 import { TableStatus } from 'src/core/enums/table-status.enum';
 import { OrderStatus } from 'src/core/enums/order-status.enum';
+import { ReservationStatus } from 'src/core/enums/reservation-status.enum';
 import { Repository } from 'typeorm';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 
@@ -28,10 +29,15 @@ export class TablesService {
   }
 
   async findOverview() {
+    const now = new Date();
     const activeStatuses = [
       OrderStatus.PENDING,
       OrderStatus.IN_PROGRESS,
       OrderStatus.READY,
+    ];
+    const reservationStatuses = [
+      ReservationStatus.PENDING,
+      ReservationStatus.CONFIRMED,
     ];
     const tables = await this.tablesRepo
       .createQueryBuilder('table')
@@ -42,12 +48,20 @@ export class TablesService {
         { activeStatuses },
       )
       .leftJoinAndSelect('order.createdBy', 'createdBy')
+      .leftJoinAndSelect(
+        'table.reservations',
+        'reservation',
+        'reservation.reservationAt >= :now AND reservation.status IN (:...reservationStatuses)',
+        { now, reservationStatuses },
+      )
       .orderBy('table.number', 'ASC')
       .addOrderBy('order.createdAt', 'DESC')
+      .addOrderBy('reservation.reservationAt', 'ASC')
       .getMany();
 
     return tables.map((table) => {
       const order = table.orders?.[0];
+      const reservation = table.reservations?.[0];
       return {
         id: table.id,
         number: table.number,
@@ -62,6 +76,15 @@ export class TablesService {
               waiter: order.createdBy
                 ? { id: order.createdBy.id, name: order.createdBy.name }
                 : null,
+            }
+          : null,
+        nextReservation: reservation
+          ? {
+              id: reservation.id,
+              customerName: reservation.customerName,
+              guests: reservation.guests,
+              reservationAt: reservation.reservationAt,
+              status: reservation.status,
             }
           : null,
       };

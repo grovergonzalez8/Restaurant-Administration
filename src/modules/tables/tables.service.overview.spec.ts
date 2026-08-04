@@ -2,6 +2,7 @@ import { Repository } from 'typeorm';
 import { TableEntity } from 'src/core/entities/table.entity';
 import { OrderStatus } from 'src/core/enums/order-status.enum';
 import { TableStatus } from 'src/core/enums/table-status.enum';
+import { ReservationStatus } from 'src/core/enums/reservation-status.enum';
 import { TablesService } from './tables.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 
@@ -42,6 +43,15 @@ describe('TablesService operational overview', () => {
             createdBy: { id: 'waiter-1', name: 'Carlos Mesero' },
           },
         ],
+        reservations: [
+          {
+            id: 'reservation-1',
+            customerName: 'Ana Pérez',
+            guests: 4,
+            reservationAt: new Date('2026-08-04T20:00:00.000Z'),
+            status: ReservationStatus.CONFIRMED,
+          },
+        ],
       },
       {
         id: 'table-2',
@@ -49,6 +59,7 @@ describe('TablesService operational overview', () => {
         capacity: 2,
         status: TableStatus.FREE,
         orders: [],
+        reservations: [],
       },
     ]);
 
@@ -67,6 +78,13 @@ describe('TablesService operational overview', () => {
           createdAt: new Date('2026-08-03T18:00:00.000Z'),
           waiter: { id: 'waiter-1', name: 'Carlos Mesero' },
         },
+        nextReservation: {
+          id: 'reservation-1',
+          customerName: 'Ana Pérez',
+          guests: 4,
+          reservationAt: new Date('2026-08-04T20:00:00.000Z'),
+          status: ReservationStatus.CONFIRMED,
+        },
       },
       {
         id: 'table-2',
@@ -74,6 +92,7 @@ describe('TablesService operational overview', () => {
         capacity: 2,
         status: TableStatus.FREE,
         activeOrder: null,
+        nextReservation: null,
       },
     ]);
     expect(query.leftJoinAndSelect).toHaveBeenCalledWith(
@@ -85,6 +104,18 @@ describe('TablesService operational overview', () => {
           OrderStatus.PENDING,
           OrderStatus.IN_PROGRESS,
           OrderStatus.READY,
+        ],
+      },
+    );
+    expect(query.leftJoinAndSelect).toHaveBeenCalledWith(
+      'table.reservations',
+      'reservation',
+      'reservation.reservationAt >= :now AND reservation.status IN (:...reservationStatuses)',
+      {
+        now: expect.any(Date) as Date,
+        reservationStatuses: [
+          ReservationStatus.PENDING,
+          ReservationStatus.CONFIRMED,
         ],
       },
     );

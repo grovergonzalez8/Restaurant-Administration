@@ -5,6 +5,7 @@ import { TableEntity } from 'src/core/entities/table.entity';
 import { ReservationStatus } from 'src/core/enums/reservation-status.enum';
 import { TableStatus } from 'src/core/enums/table-status.enum';
 import { ReservationsService } from './reservations.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 describe('ReservationsService scheduling', () => {
   const reservations = {
@@ -12,6 +13,7 @@ describe('ReservationsService scheduling', () => {
     findOne: jest.fn(),
     create: jest.fn(),
     save: jest.fn(),
+    delete: jest.fn(),
   };
   const tables = { find: jest.fn(), findOne: jest.fn() };
   const manager = {
@@ -25,10 +27,12 @@ describe('ReservationsService scheduling', () => {
     callback(manager),
   );
   const dataSource = { transaction } as unknown as DataSource;
+  const realtime = { emit: jest.fn() };
   const service = new ReservationsService(
     reservations as unknown as Repository<ReservationEntity>,
     tables as unknown as Repository<TableEntity>,
     dataSource,
+    realtime as unknown as RealtimeGateway,
   );
 
   beforeEach(() => jest.clearAllMocks());
@@ -107,6 +111,7 @@ describe('ReservationsService scheduling', () => {
 
     expect(result).toBe(saved);
     expect(reservations.save).toHaveBeenCalled();
+    expect(realtime.emit).toHaveBeenCalledWith('reservation.created', saved);
   });
 
   it('rejects reopening a completed reservation', async () => {
@@ -120,5 +125,33 @@ describe('ReservationsService scheduling', () => {
         status: ReservationStatus.CONFIRMED,
       }),
     ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('notifies realtime clients when a reservation changes', async () => {
+    const reservation = {
+      id: 'reservation-1',
+      status: ReservationStatus.PENDING,
+    };
+    reservations.findOne.mockResolvedValue(reservation);
+    reservations.save.mockImplementation((value: unknown) => value);
+
+    await service.updateStatus('reservation-1', {
+      status: ReservationStatus.CONFIRMED,
+    });
+
+    expect(realtime.emit).toHaveBeenCalledWith(
+      'reservation.updated',
+      reservation,
+    );
+  });
+
+  it('notifies realtime clients when a reservation is removed', async () => {
+    reservations.delete.mockResolvedValue({ affected: 1 });
+
+    await service.remove('reservation-1');
+
+    expect(realtime.emit).toHaveBeenCalledWith('reservation.deleted', {
+      id: 'reservation-1',
+    });
   });
 });

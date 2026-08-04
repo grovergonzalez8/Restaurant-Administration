@@ -20,6 +20,7 @@ import {
   Not,
   Repository,
 } from 'typeorm';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 const RESERVATION_DURATION_MS = 2 * 60 * 60 * 1000;
 
@@ -31,6 +32,7 @@ export class ReservationsService {
     @InjectRepository(TableEntity)
     private readonly tables: Repository<TableEntity>,
     private readonly dataSource: DataSource,
+    private readonly realtime: RealtimeGateway,
   ) {}
 
   findAll() {
@@ -88,7 +90,7 @@ export class ReservationsService {
   async create(dto: CreateReservationDto) {
     const reservationAt = new Date(dto.reservationAt);
     this.assertFuture(reservationAt);
-    return this.dataSource.transaction(async (manager) => {
+    const reservation = await this.dataSource.transaction(async (manager) => {
       const tables = manager.getRepository(TableEntity);
       const reservations = manager.getRepository(ReservationEntity);
       const table = await tables.findOne({
@@ -116,6 +118,8 @@ export class ReservationsService {
         reservations.create({ ...dto, table, reservationAt }),
       );
     });
+    this.realtime.emit('reservation.created', reservation);
+    return reservation;
   }
 
   async updateStatus(id: string, dto: UpdateReservationStatusDto) {
@@ -140,11 +144,14 @@ export class ReservationsService {
       throw new ConflictException('Transición de reserva no válida');
     }
     reservation.status = dto.status;
-    return this.reservations.save(reservation);
+    const saved = await this.reservations.save(reservation);
+    this.realtime.emit('reservation.updated', saved);
+    return saved;
   }
 
   async remove(id: string) {
     const result = await this.reservations.delete(id);
     if (!result.affected) throw new NotFoundException('Reserva no encontrada');
+    this.realtime.emit('reservation.deleted', { id });
   }
 }
