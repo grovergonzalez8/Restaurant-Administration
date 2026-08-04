@@ -1,18 +1,19 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { RolesController } from './roles.controller';
+import { RolesService } from './roles.service';
 
 describe('RolesController', () => {
-  let controller: RolesController;
+  const rolesService = { findAll: jest.fn() };
+  const controller = new RolesController(
+    rolesService as unknown as RolesService,
+  );
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [RolesController],
-    }).compile();
+  beforeEach(() => jest.clearAllMocks());
 
-    controller = module.get<RolesController>(RolesController);
-  });
+  it('returns the configured roles', async () => {
+    const roles = [{ id: 1, name: 'admin' }];
+    rolesService.findAll.mockResolvedValue(roles);
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+    await expect(controller.findAll()).resolves.toBe(roles);
+    expect(rolesService.findAll).toHaveBeenCalledTimes(1);
   });
 });

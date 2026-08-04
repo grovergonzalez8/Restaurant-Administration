@@ -1,18 +1,19 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { InventoryController } from './inventory.controller';
+import { InventoryService } from './inventory.service';
 
 describe('InventoryController', () => {
-  let controller: InventoryController;
+  const inventoryService = { findLowStock: jest.fn() };
+  const controller = new InventoryController(
+    inventoryService as unknown as InventoryService,
+  );
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [InventoryController],
-    }).compile();
+  beforeEach(() => jest.clearAllMocks());
 
-    controller = module.get<InventoryController>(InventoryController);
-  });
+  it('returns the low-stock items', async () => {
+    const items = [{ id: 'item-1', name: 'Tomate' }];
+    inventoryService.findLowStock.mockResolvedValue(items);
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+    await expect(controller.findLowStock()).resolves.toBe(items);
+    expect(inventoryService.findLowStock).toHaveBeenCalledTimes(1);
   });
 });

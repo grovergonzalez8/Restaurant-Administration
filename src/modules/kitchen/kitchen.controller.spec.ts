@@ -1,18 +1,19 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { KitchenController } from './kitchen.controller';
+import { KitchenService } from './kitchen.service';
 
 describe('KitchenController', () => {
-  let controller: KitchenController;
+  const kitchenService = { findActive: jest.fn() };
+  const controller = new KitchenController(
+    kitchenService as unknown as KitchenService,
+  );
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [KitchenController],
-    }).compile();
+  beforeEach(() => jest.clearAllMocks());
 
-    controller = module.get<KitchenController>(KitchenController);
-  });
+  it('returns the active kitchen queue', async () => {
+    const tickets = [{ id: 'ticket-1', status: 'pending' }];
+    kitchenService.findActive.mockResolvedValue(tickets);
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+    await expect(controller.findActive()).resolves.toBe(tickets);
+    expect(kitchenService.findActive).toHaveBeenCalledTimes(1);
   });
 });

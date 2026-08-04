@@ -1,18 +1,20 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Repository } from 'typeorm';
+import { RoleEntity } from 'src/core/entities/role.entity';
 import { RolesService } from './roles.service';
 
 describe('RolesService', () => {
-  let service: RolesService;
+  const repository = { find: jest.fn() };
+  const service = new RolesService(
+    repository as unknown as Repository<RoleEntity>,
+  );
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [RolesService],
-    }).compile();
+  beforeEach(() => jest.clearAllMocks());
 
-    service = module.get<RolesService>(RolesService);
-  });
+  it('loads every configured role', async () => {
+    const roles = [{ id: 1, name: 'admin' }] as RoleEntity[];
+    repository.find.mockResolvedValue(roles);
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+    await expect(service.findAll()).resolves.toBe(roles);
+    expect(repository.find).toHaveBeenCalledTimes(1);
   });
 });

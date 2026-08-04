@@ -1,18 +1,19 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { TablesController } from './tables.controller';
+import { TablesService } from './tables.service';
 
 describe('TablesController', () => {
-  let controller: TablesController;
+  const tablesService = { findOverview: jest.fn() };
+  const controller = new TablesController(
+    tablesService as unknown as TablesService,
+  );
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [TablesController],
-    }).compile();
+  beforeEach(() => jest.clearAllMocks());
 
-    controller = module.get<TablesController>(TablesController);
-  });
+  it('returns the operational dining-room overview', async () => {
+    const overview = [{ id: 'table-1', activeOrder: null }];
+    tablesService.findOverview.mockResolvedValue(overview);
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+    await expect(controller.findOverview()).resolves.toBe(overview);
+    expect(tablesService.findOverview).toHaveBeenCalledTimes(1);
   });
 });
