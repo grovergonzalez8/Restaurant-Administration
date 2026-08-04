@@ -28,6 +28,7 @@ describe('AuthService', () => {
       email: 'waiter@restaurant.test',
       passwordHash: 'hash',
       isActive: true,
+      sessionVersion: 3,
       role: { name: 'waiter' },
     };
     users.findOne.mockResolvedValue(user);
@@ -43,6 +44,7 @@ describe('AuthService', () => {
       sub: user.id,
       email: user.email,
       role: 'waiter',
+      sessionVersion: 3,
     });
     expect(result.access_token).toBe('token');
   });
@@ -75,11 +77,31 @@ describe('AuthService', () => {
   it('only resolves active users for authenticated requests', async () => {
     users.findOne.mockResolvedValue(null);
 
-    await service.findById('user-1');
+    await service.findById('user-1', 3);
 
     expect(users.findOne).toHaveBeenCalledWith({
       where: { id: 'user-1', isActive: true },
       relations: ['role'],
+      select: [
+        'id',
+        'name',
+        'email',
+        'phone',
+        'isActive',
+        'sessionVersion',
+        'createdAt',
+        'updatedAt',
+      ],
     });
+  });
+
+  it('rejects a token issued before the latest password change', async () => {
+    users.findOne.mockResolvedValue({
+      id: 'user-1',
+      isActive: true,
+      sessionVersion: 4,
+    });
+
+    await expect(service.findById('user-1', 3)).resolves.toBeNull();
   });
 });

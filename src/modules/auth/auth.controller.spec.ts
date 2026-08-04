@@ -7,13 +7,14 @@ describe('AuthController', () => {
 
   beforeEach(() => jest.clearAllMocks());
 
-  it('never exposes the password hash on login', async () => {
+  it('never exposes internal authentication data on login', async () => {
     auth.login.mockResolvedValue({
       access_token: 'token',
       user: {
         id: 'user-1',
         email: 'waiter@restaurant.test',
         passwordHash: 'secret-hash',
+        sessionVersion: 3,
       },
     });
 

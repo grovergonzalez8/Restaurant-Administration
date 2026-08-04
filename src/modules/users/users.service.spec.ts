@@ -102,6 +102,30 @@ describe('UsersService staff lifecycle', () => {
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
+  it('increments the session version when resetting a password', async () => {
+    const user = {
+      id: 'waiter-1',
+      role: waiterRole,
+      sessionVersion: 2,
+    } as UserEntity;
+    users.findOne
+      .mockResolvedValueOnce(user)
+      .mockResolvedValueOnce({ id: user.id, sessionVersion: 2 });
+    passwordHash.mockResolvedValue('new-hash');
+    users.save.mockImplementation((value: UserEntity) =>
+      Promise.resolve(value),
+    );
+
+    const updated = await service.update(
+      user.id,
+      { password: 'new-secret' },
+      'admin-1',
+    );
+
+    expect(updated.passwordHash).toBe('new-hash');
+    expect(updated.sessionVersion).toBe(3);
+  });
+
   it('prevents deleting the current administrator account', async () => {
     await expect(service.remove('admin-1', 'admin-1')).rejects.toBeInstanceOf(
       ConflictException,

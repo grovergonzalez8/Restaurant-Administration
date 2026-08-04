@@ -31,6 +31,9 @@ export class UserEntity {
   @Column({ default: true })
   isActive: boolean;
 
+  @Column({ default: 0, select: false })
+  sessionVersion: number;
+
   @ManyToOne(() => RoleEntity, { eager: true })
   @JoinColumn({ name: 'roleId' })
   role: RoleEntity;

@@ -94,6 +94,11 @@ export class UsersService {
 
     if (dto.password) {
       user.passwordHash = await hashPassword(dto.password);
+      const session = await this.usersRepository.findOne({
+        where: { id },
+        select: ['id', 'sessionVersion'],
+      });
+      user.sessionVersion = (session?.sessionVersion ?? 0) + 1;
     }
 
     if (dto.roleId !== undefined) {

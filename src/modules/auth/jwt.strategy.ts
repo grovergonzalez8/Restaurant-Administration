@@ -5,7 +5,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { AuthService } from './auth.service';
 import { getJwtSecret } from './jwt.config';
 
-type JwtPayload = { sub: string };
+type JwtPayload = { sub: string; sessionVersion: number };
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -21,6 +21,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   validate(payload: JwtPayload) {
-    return this.authService.findById(payload.sub);
+    return this.authService.findById(payload.sub, payload.sessionVersion);
   }
 }

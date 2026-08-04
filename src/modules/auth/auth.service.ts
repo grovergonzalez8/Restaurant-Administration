@@ -25,6 +25,7 @@ export class AuthService {
         'passwordHash',
         'phone',
         'isActive',
+        'sessionVersion',
         'createdAt',
         'updatedAt',
       ],
@@ -52,6 +53,7 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       role: user.role.name || 'user',
+      sessionVersion: user.sessionVersion,
     };
     return {
       access_token: this.jwtService.sign(payload),
@@ -59,12 +61,22 @@ export class AuthService {
     };
   }
 
-  async findById(id: string) {
+  async findById(id: string, sessionVersion: number) {
     const user = await this.usersRepository.findOne({
       where: { id, isActive: true },
       relations: ['role'],
+      select: [
+        'id',
+        'name',
+        'email',
+        'phone',
+        'isActive',
+        'sessionVersion',
+        'createdAt',
+        'updatedAt',
+      ],
     });
 
-    return user;
+    return user?.sessionVersion === sessionVersion ? user : null;
   }
 }

@@ -11,9 +11,14 @@ import { LoginUserDto } from 'src/core/dtos/login/login.dto';
 import { UserEntity } from 'src/core/entities/user.entity';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
-const withoutPasswordHash = <T extends { passwordHash?: string }>(user: T) => {
+const withoutSensitiveAuthData = <
+  T extends { passwordHash?: string; sessionVersion?: number },
+>(
+  user: T,
+) => {
   const safeUser = { ...user };
   delete safeUser.passwordHash;
+  delete safeUser.sessionVersion;
   return safeUser;
 };
 
@@ -24,12 +29,12 @@ export class AuthController {
   @Post('login')
   async login(@Body() dto: LoginUserDto) {
     const result = await this.authService.login(dto);
-    return { ...result, user: withoutPasswordHash(result.user) };
+    return { ...result, user: withoutSensitiveAuthData(result.user) };
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   profile(@Request() req: { user: UserEntity }) {
-    return withoutPasswordHash(req.user);
+    return withoutSensitiveAuthData(req.user);
   }
 }
