@@ -27,4 +27,15 @@ describe('CreateOrderDto', () => {
 
     expect(errors.find((error) => error.property === 'status')).toBeDefined();
   });
+
+  it('validates the optional reservation identifier', async () => {
+    const linked = dto(OrderStatus.PENDING);
+    linked.reservationId = 'invalid-id';
+
+    const errors = await validate(linked);
+
+    expect(
+      errors.find((error) => error.property === 'reservationId'),
+    ).toBeDefined();
+  });
 });

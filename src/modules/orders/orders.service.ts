@@ -25,6 +25,8 @@ import { DataSource, EntityManager, Repository } from 'typeorm';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { AddOrderItemDto } from 'src/core/dtos/orders/add-order-item.dto';
 import { UpdateOrderItemDto } from 'src/core/dtos/orders/update-order-item.dto';
+import { ReservationEntity } from 'src/core/entities/reservation.entity';
+import { ReservationStatus } from 'src/core/enums/reservation-status.enum';
 
 @Injectable()
 export class OrdersService {
@@ -86,6 +88,25 @@ export class OrdersService {
       ) {
         throw new ConflictException(
           'La mesa no está disponible para una nueva orden',
+        );
+      }
+
+      const reservations = dto.reservationId
+        ? manager.getRepository(ReservationEntity)
+        : null;
+      const reservation = reservations
+        ? await reservations.findOne({
+            where: { id: dto.reservationId, table: { id: table.id } },
+            lock: { mode: 'pessimistic_write' },
+            loadEagerRelations: false,
+          })
+        : null;
+      if (dto.reservationId && !reservation) {
+        throw new NotFoundException('Reserva no encontrada para esta mesa');
+      }
+      if (reservation?.status !== ReservationStatus.CONFIRMED && reservation) {
+        throw new ConflictException(
+          'Solo una reserva confirmada puede iniciar una orden',
         );
       }
 
@@ -160,6 +181,10 @@ export class OrdersService {
           status: KitchenStatus.PENDING,
         }),
       );
+      if (reservation && reservations) {
+        reservation.status = ReservationStatus.COMPLETED;
+        await reservations.save(reservation);
+      }
       return savedOrder;
     });
     this.realtime.emit('order.created', savedOrder);

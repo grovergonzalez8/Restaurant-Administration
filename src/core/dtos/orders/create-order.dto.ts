@@ -25,6 +25,10 @@ export class CreateOrderDto {
   tableId: string;
 
   @IsOptional()
+  @IsUUID()
+  reservationId?: string;
+
+  @IsOptional()
   @Equals(OrderStatus.PENDING)
   status?: OrderStatus.PENDING;
 

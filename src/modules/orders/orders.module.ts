@@ -11,6 +11,7 @@ import { InventoryItemEntity } from 'src/core/entities/inventory-item.entity';
 import { InventoryOutputEntity } from 'src/core/entities/inventory-output.entity';
 import { InventoryEntryEntity } from 'src/core/entities/inventory-entry.entity';
 import { RecipeItemEntity } from 'src/core/entities/recipe-item.entity';
+import { ReservationEntity } from 'src/core/entities/reservation.entity';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { RecipeItemEntity } from 'src/core/entities/recipe-item.entity';
       InventoryItemEntity,
       InventoryOutputEntity,
       InventoryEntryEntity,
+      ReservationEntity,
     ]),
   ],
   controllers: [OrdersController],
