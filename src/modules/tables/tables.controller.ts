@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
 import { TablesService } from './tables.service';
 import { CreateTableDto } from 'src/core/dtos/tables/create-table.dto';
 import { UpdateTableDto } from 'src/core/dtos/tables/update-table.dto';
@@ -9,41 +18,47 @@ import { Roles } from '../auth/roles.decorator';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('tables')
 export class TablesController {
-    constructor(private readonly tablesService: TablesService) {}
+  constructor(private readonly tablesService: TablesService) {}
 
-    @Get()
-    @Roles('admin', 'kitchen', 'waiter')
-    findAll() {
-        return this.tablesService.findAll();
-    }
+  @Get()
+  @Roles('admin', 'kitchen', 'waiter')
+  findAll() {
+    return this.tablesService.findAll();
+  }
 
-    @Get('available')
-    @Roles('admin', 'host', 'waiter')
-    findAvailable() {
-        return this.tablesService.findAvailable();
-    }
+  @Get('available')
+  @Roles('admin', 'host', 'waiter')
+  findAvailable() {
+    return this.tablesService.findAvailable();
+  }
 
-    @Get(':id')
-    @Roles('admin', 'host', 'waiter')
-    findOne(@Param('id') id: string) {
-        return this.tablesService.findOne(id);
-    }
+  @Get('overview')
+  @Roles('admin', 'host', 'waiter')
+  findOverview() {
+    return this.tablesService.findOverview();
+  }
 
-    @Post()
-    @Roles('admin')
-    create(@Body() dto: CreateTableDto) {
-        return this.tablesService.create(dto);
-    }
+  @Get(':id')
+  @Roles('admin', 'host', 'waiter')
+  findOne(@Param('id') id: string) {
+    return this.tablesService.findOne(id);
+  }
 
-    @Put(':id')
-    @Roles('admin')
-    update(@Param('id') id: string, @Body() dto: UpdateTableDto) {
-        return this.tablesService.update(id, dto);
-    }
+  @Post()
+  @Roles('admin')
+  create(@Body() dto: CreateTableDto) {
+    return this.tablesService.create(dto);
+  }
 
-    @Delete(':id')
-    @Roles('admin')
-    remove(@Param('id') id: string) {
-        return this.tablesService.remove(id);
-    }
+  @Put(':id')
+  @Roles('admin')
+  update(@Param('id') id: string, @Body() dto: UpdateTableDto) {
+    return this.tablesService.update(id, dto);
+  }
+
+  @Delete(':id')
+  @Roles('admin')
+  remove(@Param('id') id: string) {
+    return this.tablesService.remove(id);
+  }
 }
