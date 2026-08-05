@@ -7,16 +7,19 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { CreateTableDto } from 'src/core/dtos/tables/create-table.dto';
 import { UpdateTableDto } from 'src/core/dtos/tables/update-table.dto';
 import { TableEntity } from 'src/core/entities/table.entity';
+import { ReservationEntity } from 'src/core/entities/reservation.entity';
 import { TableStatus } from 'src/core/enums/table-status.enum';
 import { OrderStatus } from 'src/core/enums/order-status.enum';
 import { ReservationStatus } from 'src/core/enums/reservation-status.enum';
-import { Repository } from 'typeorm';
+import { In, MoreThanOrEqual, Repository } from 'typeorm';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 @Injectable()
 export class TablesService {
   constructor(
     @InjectRepository(TableEntity) private tablesRepo: Repository<TableEntity>,
+    @InjectRepository(ReservationEntity)
+    private reservationsRepo: Repository<ReservationEntity>,
     private readonly realtime: RealtimeGateway,
   ) {}
 
@@ -116,6 +119,32 @@ export class TablesService {
     const table = await this.findOne(id);
     if (table.status === TableStatus.OCCUPIED) {
       throw new ConflictException('No se puede modificar una mesa ocupada');
+    }
+    if (
+      dto.status === TableStatus.OUT_OF_SERVICE ||
+      dto.capacity !== undefined
+    ) {
+      const reservation = await this.reservationsRepo.findOne({
+        where: {
+          table: { id },
+          reservationAt: MoreThanOrEqual(new Date()),
+          status: In([ReservationStatus.PENDING, ReservationStatus.CONFIRMED]),
+        },
+        order: { reservationAt: 'ASC' },
+      });
+      if (reservation && dto.status === TableStatus.OUT_OF_SERVICE) {
+        throw new ConflictException(
+          'No se puede poner fuera de servicio una mesa con una reserva activa',
+        );
+      }
+      if (
+        reservation &&
+        (dto.capacity ?? table.capacity) < reservation.guests
+      ) {
+        throw new ConflictException(
+          `La capacidad no puede ser menor a los ${reservation.guests} comensales de la próxima reserva`,
+        );
+      }
     }
     if (dto.number !== undefined && dto.number !== table.number) {
       const duplicate = await this.tablesRepo.findOne({

@@ -1,5 +1,6 @@
 import { Repository } from 'typeorm';
 import { TableEntity } from 'src/core/entities/table.entity';
+import { ReservationEntity } from 'src/core/entities/reservation.entity';
 import { TableStatus } from 'src/core/enums/table-status.enum';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { TablesService } from './tables.service';
@@ -8,6 +9,7 @@ describe('TablesService', () => {
   const repository = { find: jest.fn() };
   const service = new TablesService(
     repository as unknown as Repository<TableEntity>,
+    {} as Repository<ReservationEntity>,
     { emit: jest.fn() } as unknown as RealtimeGateway,
   );
 

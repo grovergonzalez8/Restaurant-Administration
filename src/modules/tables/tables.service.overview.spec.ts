@@ -1,5 +1,6 @@
 import { Repository } from 'typeorm';
 import { TableEntity } from 'src/core/entities/table.entity';
+import { ReservationEntity } from 'src/core/entities/reservation.entity';
 import { OrderStatus } from 'src/core/enums/order-status.enum';
 import { TableStatus } from 'src/core/enums/table-status.enum';
 import { ReservationStatus } from 'src/core/enums/reservation-status.enum';
@@ -16,6 +17,7 @@ describe('TablesService operational overview', () => {
   const repository = { createQueryBuilder: jest.fn() };
   const service = new TablesService(
     repository as unknown as Repository<TableEntity>,
+    {} as Repository<ReservationEntity>,
     { emit: jest.fn() } as unknown as RealtimeGateway,
   );
 

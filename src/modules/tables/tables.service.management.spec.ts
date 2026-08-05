@@ -1,6 +1,8 @@
 import { ConflictException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { TableEntity } from 'src/core/entities/table.entity';
+import { ReservationEntity } from 'src/core/entities/reservation.entity';
+import { ReservationStatus } from 'src/core/enums/reservation-status.enum';
 import { TableStatus } from 'src/core/enums/table-status.enum';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { TablesService } from './tables.service';
@@ -13,12 +15,17 @@ describe('TablesService management', () => {
     delete: jest.fn(),
   };
   const realtime = { emit: jest.fn() };
+  const reservations = { findOne: jest.fn() };
   const service = new TablesService(
     repository as unknown as Repository<TableEntity>,
+    reservations as unknown as Repository<ReservationEntity>,
     realtime as unknown as RealtimeGateway,
   );
 
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    reservations.findOne.mockResolvedValue(null);
+  });
 
   it('creates a table and broadcasts the change', async () => {
     const table = {
@@ -47,6 +54,44 @@ describe('TablesService management', () => {
     await expect(
       service.update('table-1', { capacity: 6 }),
     ).rejects.toBeInstanceOf(ConflictException);
+    expect(repository.save).not.toHaveBeenCalled();
+  });
+
+  it('prevents taking a table with an active reservation out of service', async () => {
+    repository.findOne.mockResolvedValue({
+      id: 'table-1',
+      number: 1,
+      capacity: 4,
+      status: TableStatus.FREE,
+    });
+    reservations.findOne.mockResolvedValue({
+      id: 'reservation-1',
+      guests: 4,
+      status: ReservationStatus.CONFIRMED,
+    });
+
+    await expect(
+      service.update('table-1', { status: TableStatus.OUT_OF_SERVICE }),
+    ).rejects.toThrow('reserva activa');
+    expect(repository.save).not.toHaveBeenCalled();
+  });
+
+  it('preserves the capacity required by the next active reservation', async () => {
+    repository.findOne.mockResolvedValue({
+      id: 'table-1',
+      number: 1,
+      capacity: 6,
+      status: TableStatus.FREE,
+    });
+    reservations.findOne.mockResolvedValue({
+      id: 'reservation-1',
+      guests: 5,
+      status: ReservationStatus.PENDING,
+    });
+
+    await expect(service.update('table-1', { capacity: 4 })).rejects.toThrow(
+      '5 comensales',
+    );
     expect(repository.save).not.toHaveBeenCalled();
   });
 
