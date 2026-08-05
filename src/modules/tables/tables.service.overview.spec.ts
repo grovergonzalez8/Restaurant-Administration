@@ -112,9 +112,8 @@ describe('TablesService operational overview', () => {
     expect(query.leftJoinAndSelect).toHaveBeenCalledWith(
       'table.reservations',
       'reservation',
-      'reservation.reservationAt >= :now AND reservation.status IN (:...reservationStatuses)',
+      'reservation.status IN (:...reservationStatuses)',
       {
-        now: expect.any(Date) as Date,
         reservationStatuses: [
           ReservationStatus.PENDING,
           ReservationStatus.CONFIRMED,

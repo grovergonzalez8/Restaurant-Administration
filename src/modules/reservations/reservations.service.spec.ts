@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { DataSource, EntityManager, In, Repository } from 'typeorm';
 import { ReservationEntity } from 'src/core/entities/reservation.entity';
 import { TableEntity } from 'src/core/entities/table.entity';
 import { ReservationStatus } from 'src/core/enums/reservation-status.enum';
@@ -36,6 +36,19 @@ describe('ReservationsService scheduling', () => {
   );
 
   beforeEach(() => jest.clearAllMocks());
+
+  it('keeps unresolved reservations visible after their scheduled time', async () => {
+    reservations.find.mockResolvedValue([]);
+
+    await service.findUpcoming();
+
+    expect(reservations.find).toHaveBeenCalledWith({
+      where: {
+        status: In([ReservationStatus.PENDING, ReservationStatus.CONFIRMED]),
+      },
+      order: { reservationAt: 'ASC' },
+    });
+  });
 
   it('returns only tables without nearby reservations', async () => {
     const available = {

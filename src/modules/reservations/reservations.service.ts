@@ -42,7 +42,6 @@ export class ReservationsService {
   findUpcoming() {
     return this.reservations.find({
       where: {
-        reservationAt: MoreThanOrEqual(new Date()),
         status: In([ReservationStatus.PENDING, ReservationStatus.CONFIRMED]),
       },
       order: { reservationAt: 'ASC' },

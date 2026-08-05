@@ -11,7 +11,7 @@ import { ReservationEntity } from 'src/core/entities/reservation.entity';
 import { TableStatus } from 'src/core/enums/table-status.enum';
 import { OrderStatus } from 'src/core/enums/order-status.enum';
 import { ReservationStatus } from 'src/core/enums/reservation-status.enum';
-import { In, MoreThanOrEqual, Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 @Injectable()
@@ -32,7 +32,6 @@ export class TablesService {
   }
 
   async findOverview() {
-    const now = new Date();
     const activeStatuses = [
       OrderStatus.PENDING,
       OrderStatus.IN_PROGRESS,
@@ -54,8 +53,8 @@ export class TablesService {
       .leftJoinAndSelect(
         'table.reservations',
         'reservation',
-        'reservation.reservationAt >= :now AND reservation.status IN (:...reservationStatuses)',
-        { now, reservationStatuses },
+        'reservation.status IN (:...reservationStatuses)',
+        { reservationStatuses },
       )
       .orderBy('table.number', 'ASC')
       .addOrderBy('order.createdAt', 'DESC')
@@ -127,7 +126,6 @@ export class TablesService {
       const reservation = await this.reservationsRepo.findOne({
         where: {
           table: { id },
-          reservationAt: MoreThanOrEqual(new Date()),
           status: In([ReservationStatus.PENDING, ReservationStatus.CONFIRMED]),
         },
         order: { reservationAt: 'ASC' },
