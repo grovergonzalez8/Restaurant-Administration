@@ -19,12 +19,13 @@ import { RecipesModule } from './modules/recipes/recipes.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { CashSessionsModule } from './modules/cash-sessions/cash-sessions.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ 
+    ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env', 
+      envFilePath: '.env',
     }),
     TypeOrmModule.forRoot(typeOrmConfig),
     UsersModule,
@@ -42,6 +43,7 @@ import { CashSessionsModule } from './modules/cash-sessions/cash-sessions.module
     ReportsModule,
     RealtimeModule,
     CashSessionsModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

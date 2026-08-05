@@ -31,8 +31,8 @@
 $ npm install
 ```
 
-Configure `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME` and
-`JWT_SECRET` in `.env` before starting the API.
+Copy `.env.example` to `.env` and configure the database and `JWT_SECRET`.
+`CORS_ORIGIN` accepts one or more comma-separated frontend origins.
 
 ## Database migrations
 
@@ -76,6 +76,9 @@ $ npm run test:cov
 ```
 
 ## Deployment
+
+Deployment probes can use `GET /health/live` for process liveness and
+`GET /health/ready` for PostgreSQL readiness.
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
 
