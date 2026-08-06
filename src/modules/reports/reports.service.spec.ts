@@ -61,23 +61,38 @@ describe('ReportsService', () => {
 
   it('groups inventory movements without mixing units', async () => {
     const item = { id: 'stock-1', name: 'Carne', unit: 'kg' };
-    entries.find.mockResolvedValue([{ item, quantity: '5.00' }]);
-    outputs.find.mockResolvedValue([{ item, quantity: '1.50' }]);
+    const otherItem = { id: 'stock-2', name: 'Sal', unit: 'g' };
+    entries.find.mockResolvedValue([
+      { item, quantity: '5.10' },
+      {
+        item: { id: 'stock-duplicate', name: 'Carne', unit: 'kg' },
+        quantity: '0.20',
+      },
+      { item: otherItem, quantity: '500.00' },
+    ]);
+    outputs.find.mockResolvedValue([
+      { item, quantity: '1.20' },
+      { item, quantity: '0.10' },
+    ]);
 
     const report = await service.inventory({});
 
     expect(report).toEqual({
-      entries: 5,
-      outputs: 1.5,
-      movements: { entries: 1, outputs: 1 },
+      movements: { entries: 3, outputs: 2 },
       items: [
         {
-          id: 'stock-1',
           name: 'Carne',
           unit: 'kg',
-          entries: 5,
-          outputs: 1.5,
-          net: 3.5,
+          entries: 5.3,
+          outputs: 1.3,
+          net: 4,
+        },
+        {
+          name: 'Sal',
+          unit: 'g',
+          entries: 500,
+          outputs: 0,
+          net: 500,
         },
       ],
     });

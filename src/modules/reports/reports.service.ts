@@ -119,10 +119,11 @@ export class ReportsService {
       this.entries.find(options),
       this.outputs.find(options),
     ]);
+    const roundQuantity = (value: number) =>
+      Math.round((value + Number.EPSILON) * 100) / 100;
     const items = new Map<
       string,
       {
-        id: string;
         name: string;
         unit: string;
         entries: number;
@@ -134,8 +135,10 @@ export class ReportsService {
       item: InventoryEntryEntity | InventoryOutputEntity,
       type: 'entries' | 'outputs',
     ) => {
-      const current = items.get(item.item.id) ?? {
-        id: item.item.id,
+      const key = `${item.item.name.trim().toLowerCase()}::${item.item.unit
+        .trim()
+        .toLowerCase()}`;
+      const current = items.get(key) ?? {
         name: item.item.name,
         unit: item.item.unit,
         entries: 0,
@@ -143,21 +146,13 @@ export class ReportsService {
         net: 0,
       };
       const quantity = Number(item.quantity);
-      current[type] += quantity;
-      current.net += type === 'entries' ? quantity : -quantity;
-      items.set(item.item.id, current);
+      current[type] = roundQuantity(current[type] + quantity);
+      current.net = roundQuantity(current.entries - current.outputs);
+      items.set(key, current);
     };
     entries.forEach((entry) => movement(entry, 'entries'));
     outputs.forEach((output) => movement(output, 'outputs'));
     return {
-      entries: entries.reduce(
-        (total, entry) => total + Number(entry.quantity),
-        0,
-      ),
-      outputs: outputs.reduce(
-        (total, output) => total + Number(output.quantity),
-        0,
-      ),
       movements: { entries: entries.length, outputs: outputs.length },
       items: [...items.values()].sort((a, b) => a.name.localeCompare(b.name)),
     };
