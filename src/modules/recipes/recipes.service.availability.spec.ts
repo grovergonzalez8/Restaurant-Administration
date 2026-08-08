@@ -7,7 +7,7 @@ import { RecipesService } from './recipes.service';
 
 describe('RecipesService availability', () => {
   const recipes = { find: jest.fn(), findOne: jest.fn(), save: jest.fn() };
-  const menu = { findOne: jest.fn(), exist: jest.fn() };
+  const menu = { find: jest.fn(), findOne: jest.fn(), exist: jest.fn() };
   const service = new RecipesService(
     recipes as unknown as Repository<RecipeItemEntity>,
     menu as unknown as Repository<MenuItemEntity>,
@@ -50,6 +50,37 @@ describe('RecipesService availability', () => {
 
     expect(result.tracked).toBe(false);
     expect(result.maxServings).toBeNull();
+  });
+
+  it('returns availability for all sellable menu items in one query', async () => {
+    menu.find.mockResolvedValue([
+      { id: 'menu-1', status: MenuStatus.AVAIBLE },
+      { id: 'menu-2', status: MenuStatus.AVAIBLE },
+    ]);
+    recipes.find.mockResolvedValue([
+      {
+        menuItem: { id: 'menu-1' },
+        quantity: 2,
+        inventoryItem: { id: 'stock-1', name: 'Carne', quantity: 3 },
+      },
+    ]);
+
+    await expect(service.menuAvailability()).resolves.toEqual([
+      expect.objectContaining({
+        menuItemId: 'menu-1',
+        tracked: true,
+        available: true,
+        maxServings: 1,
+      }),
+      expect.objectContaining({
+        menuItemId: 'menu-2',
+        tracked: false,
+        available: true,
+        maxServings: null,
+      }),
+    ]);
+    expect(menu.find).toHaveBeenCalledTimes(1);
+    expect(recipes.find).toHaveBeenCalledTimes(1);
   });
 
   it('updates ingredient quantity', async () => {

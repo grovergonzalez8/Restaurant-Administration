@@ -41,9 +41,37 @@ export class RecipesService {
     const ingredients = await this.recipes.find({
       where: { menuItem: { id: menuItemId } },
     });
+    return this.calculateAvailability(menuItem, ingredients);
+  }
+
+  async menuAvailability() {
+    const [menuItems, ingredients] = await Promise.all([
+      this.menu.find({ where: { status: MenuStatus.AVAIBLE } }),
+      this.recipes.find(),
+    ]);
+    const ingredientsByMenuItem = new Map<string, RecipeItemEntity[]>();
+    ingredients.forEach((ingredient) => {
+      const menuItemId = ingredient.menuItem.id;
+      ingredientsByMenuItem.set(menuItemId, [
+        ...(ingredientsByMenuItem.get(menuItemId) ?? []),
+        ingredient,
+      ]);
+    });
+    return menuItems.map((menuItem) =>
+      this.calculateAvailability(
+        menuItem,
+        ingredientsByMenuItem.get(menuItem.id) ?? [],
+      ),
+    );
+  }
+
+  private calculateAvailability(
+    menuItem: MenuItemEntity,
+    ingredients: RecipeItemEntity[],
+  ) {
     if (!ingredients.length) {
       return {
-        menuItemId,
+        menuItemId: menuItem.id,
         available: menuItem.status === MenuStatus.AVAIBLE,
         tracked: false,
         maxServings: null,
@@ -63,7 +91,7 @@ export class RecipesService {
     });
     const maxServings = Math.min(...details.map((item) => item.servings));
     return {
-      menuItemId,
+      menuItemId: menuItem.id,
       available: menuItem.status === MenuStatus.AVAIBLE && maxServings > 0,
       tracked: true,
       maxServings,

@@ -27,6 +27,12 @@ export class RecipesController {
     return this.recipesService.findAll();
   }
 
+  @Get('menu/availability')
+  @Roles('admin', 'kitchen', 'waiter')
+  menuAvailability() {
+    return this.recipesService.menuAvailability();
+  }
+
   @Get('menu/:menuItemId')
   @Roles('admin', 'kitchen')
   findByMenuItem(@Param('menuItemId', ParseUUIDPipe) menuItemId: string) {
