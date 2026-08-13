@@ -5,6 +5,7 @@ import { InventoryEntryEntity } from 'src/core/entities/inventory-entry.entity';
 import { InventoryOutputEntity } from 'src/core/entities/inventory-output.entity';
 import { PaymentEntity } from 'src/core/entities/payment.entity';
 import { PaymentMethod } from 'src/core/enums/payment-method.enum';
+import { InventoryOutputReason } from 'src/core/enums/inventory-output-reason.enum';
 import {
   Between,
   FindOperator,
@@ -154,6 +155,50 @@ export class ReportsService {
     outputs.forEach((output) => movement(output, 'outputs'));
     return {
       movements: { entries: entries.length, outputs: outputs.length },
+      items: [...items.values()].sort((a, b) => a.name.localeCompare(b.name)),
+    };
+  }
+
+  async waste(period: ReportPeriodDto) {
+    const createdAt = this.dateRange(period);
+    const outputs = await this.outputs.find({
+      where: createdAt
+        ? { reason: InventoryOutputReason.WASTE, createdAt }
+        : { reason: InventoryOutputReason.WASTE },
+      relations: { item: true },
+      loadEagerRelations: false,
+      order: { createdAt: 'DESC' },
+    });
+    const items = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        unit: string;
+        quantity: number;
+        movements: number;
+      }
+    >();
+    const roundQuantity = (value: number) =>
+      Math.round((value + Number.EPSILON) * 100) / 100;
+
+    for (const output of outputs) {
+      const current = items.get(output.item.id) ?? {
+        id: output.item.id,
+        name: output.item.name,
+        unit: output.item.unit,
+        quantity: 0,
+        movements: 0,
+      };
+      current.quantity = roundQuantity(
+        current.quantity + Number(output.quantity),
+      );
+      current.movements += 1;
+      items.set(output.item.id, current);
+    }
+
+    return {
+      movements: outputs.length,
       items: [...items.values()].sort((a, b) => a.name.localeCompare(b.name)),
     };
   }

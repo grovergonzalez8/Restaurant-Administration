@@ -4,6 +4,7 @@ import { InventoryEntryEntity } from 'src/core/entities/inventory-entry.entity';
 import { InventoryOutputEntity } from 'src/core/entities/inventory-output.entity';
 import { PaymentEntity } from 'src/core/entities/payment.entity';
 import { PaymentMethod } from 'src/core/enums/payment-method.enum';
+import { InventoryOutputReason } from 'src/core/enums/inventory-output-reason.enum';
 import { ReportsService } from './reports.service';
 
 describe('ReportsService', () => {
@@ -103,5 +104,53 @@ describe('ReportsService', () => {
       service.sales({ from: '2026-08-03', to: '2026-08-01' }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(payments.find).not.toHaveBeenCalled();
+  });
+
+  it('aggregates only waste outputs by inventory item', async () => {
+    const wasteOutputs = [
+      {
+        item: { id: 'stock-1', name: 'Tomate', unit: 'kg' },
+        quantity: '1.20',
+      },
+      {
+        item: { id: 'stock-1', name: 'Tomate', unit: 'kg' },
+        quantity: '0.35',
+      },
+      {
+        item: { id: 'stock-2', name: 'Leche', unit: 'l' },
+        quantity: '0.50',
+      },
+    ];
+    outputs.find.mockImplementation(
+      (options: { where: { reason: InventoryOutputReason } }) => {
+        expect(options.where.reason).toBe(InventoryOutputReason.WASTE);
+        return Promise.resolve(wasteOutputs);
+      },
+    );
+
+    const report = await service.waste({
+      from: '2026-08-01',
+      to: '2026-08-13',
+    });
+
+    expect(report).toEqual({
+      movements: 3,
+      items: [
+        {
+          id: 'stock-2',
+          name: 'Leche',
+          unit: 'l',
+          quantity: 0.5,
+          movements: 1,
+        },
+        {
+          id: 'stock-1',
+          name: 'Tomate',
+          unit: 'kg',
+          quantity: 1.55,
+          movements: 2,
+        },
+      ],
+    });
   });
 });

@@ -25,4 +25,9 @@ export class ReportsController {
   inventory(@Query() period: ReportPeriodDto) {
     return this.reportsService.inventory(period);
   }
+
+  @Get('waste')
+  waste(@Query() period: ReportPeriodDto) {
+    return this.reportsService.waste(period);
+  }
 }
