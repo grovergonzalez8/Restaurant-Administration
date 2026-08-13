@@ -4,6 +4,7 @@ import { InventoryItemEntity } from 'src/core/entities/inventory-item.entity';
 import { InventoryOutputEntity } from 'src/core/entities/inventory-output.entity';
 import { InventoryService } from './inventory.service';
 import { InventoryOutputReason } from 'src/core/enums/inventory-output-reason.enum';
+import { UserEntity } from 'src/core/entities/user.entity';
 
 describe('InventoryService traceability', () => {
   const items = {
@@ -15,6 +16,22 @@ describe('InventoryService traceability', () => {
   const outputs = { create: jest.fn(), save: jest.fn() };
   const managerCreate = jest.fn();
   const managerSave = jest.fn();
+  const entryQuery = {
+    leftJoinAndSelect: jest.fn().mockReturnThis(),
+    leftJoin: jest.fn().mockReturnThis(),
+    addSelect: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    getMany: jest.fn(),
+  };
+  const outputQuery = {
+    leftJoinAndSelect: jest.fn().mockReturnThis(),
+    leftJoin: jest.fn().mockReturnThis(),
+    addSelect: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    getMany: jest.fn(),
+  };
+  const entryRepository = { createQueryBuilder: jest.fn(() => entryQuery) };
+  const outputRepository = { createQueryBuilder: jest.fn(() => outputQuery) };
   const manager = {
     create: managerCreate,
     save: managerSave,
@@ -31,10 +48,11 @@ describe('InventoryService traceability', () => {
     ),
   } as unknown as DataSource;
   const realtime = { emit: jest.fn() };
+  const actor = { id: 'user-1', name: 'Administrador' } as UserEntity;
   const service = new InventoryService(
     {} as Repository<InventoryItemEntity>,
-    {} as Repository<InventoryEntryEntity>,
-    {} as Repository<InventoryOutputEntity>,
+    entryRepository as unknown as Repository<InventoryEntryEntity>,
+    outputRepository as unknown as Repository<InventoryOutputEntity>,
     dataSource,
     realtime,
   );
@@ -49,16 +67,23 @@ describe('InventoryService traceability', () => {
     entries.create.mockReturnValue(entry);
     entries.save.mockResolvedValue(entry);
 
-    const result = await service.createItem({
-      name: 'Carne',
-      quantity: 10,
-      minStock: 2,
-      unit: 'kg',
-    });
+    const result = await service.createItem(
+      {
+        name: 'Carne',
+        quantity: 10,
+        minStock: 2,
+        unit: 'kg',
+      },
+      actor,
+    );
 
     expect(result).toBe(item);
     expect(entries.create).toHaveBeenCalledWith(
-      expect.objectContaining({ quantity: 10, note: 'Stock inicial' }),
+      expect.objectContaining({
+        quantity: 10,
+        performedBy: actor,
+        note: 'Stock inicial',
+      }),
     );
     expect(realtime.emit).toHaveBeenCalledWith('inventory.entry', entry);
   });
@@ -71,13 +96,14 @@ describe('InventoryService traceability', () => {
     outputs.create.mockReturnValue(output);
     outputs.save.mockResolvedValue(output);
 
-    const result = await service.updateItem(item.id, { quantity: 6 });
+    const result = await service.updateItem(item.id, { quantity: 6 }, actor);
 
     expect(result.quantity).toBe(6);
     expect(outputs.create).toHaveBeenCalledWith(
       expect.objectContaining({
         quantity: 4,
         reason: InventoryOutputReason.ADJUSTMENT,
+        performedBy: actor,
       }),
     );
     expect(realtime.emit).toHaveBeenCalledWith('inventory.output', output);
@@ -96,17 +122,34 @@ describe('InventoryService traceability', () => {
     managerCreate.mockReturnValue(output);
     managerSave.mockResolvedValue(output);
 
-    const result = await service.createOutput({
-      itemId: item.id,
-      quantity: 2,
-      reason: InventoryOutputReason.WASTE,
-      note: 'Producto vencido',
-    });
+    const result = await service.createOutput(
+      {
+        itemId: item.id,
+        quantity: 2,
+        reason: InventoryOutputReason.WASTE,
+        note: 'Producto vencido',
+      },
+      actor,
+    );
 
     expect(managerCreate).toHaveBeenCalledWith(
       InventoryOutputEntity,
-      expect.objectContaining({ reason: InventoryOutputReason.WASTE }),
+      expect.objectContaining({
+        reason: InventoryOutputReason.WASTE,
+        performedBy: actor,
+      }),
     );
     expect(result).toBe(output);
+  });
+
+  it('selects only the safe actor fields in movement history', async () => {
+    outputQuery.getMany.mockResolvedValue([]);
+
+    await service.findAllOutputs();
+
+    expect(outputQuery.addSelect).toHaveBeenCalledWith([
+      'performedBy.id',
+      'performedBy.name',
+    ]);
   });
 });

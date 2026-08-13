@@ -97,6 +97,9 @@ describe('OrdersService item editing', () => {
     );
 
     expect(stock.quantity).toBe(4);
+    expect(outputs.create).toHaveBeenCalledWith(
+      expect.objectContaining({ performedBy: actor }),
+    );
     expect(current.total).toBe(20);
     expect(result).toBe(updated);
     expect(realtimeMock.emit).toHaveBeenCalledWith('order.updated', updated);
@@ -151,6 +154,9 @@ describe('OrdersService item editing', () => {
     );
 
     expect(stock.quantity).toBe(5);
+    expect(entries.create).toHaveBeenCalledWith(
+      expect.objectContaining({ performedBy: actor }),
+    );
     expect(current.total).toBe(10);
     expect(result).toBe(updated);
     expect(entries.save).toHaveBeenCalled();

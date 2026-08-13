@@ -164,6 +164,7 @@ export class OrdersService {
             item: stockItem,
             quantity: required,
             reason: InventoryOutputReason.CONSUMPTION,
+            performedBy: createdBy,
             note: 'Salida automática por orden',
           }),
         );
@@ -261,6 +262,7 @@ export class OrdersService {
     menuItemId: string,
     quantityDelta: number,
     note: string,
+    actor: UserEntity,
   ) {
     if (!quantityDelta) return;
     const recipes = manager.getRepository(RecipeItemEntity);
@@ -288,13 +290,16 @@ export class OrdersService {
             item,
             quantity: amount,
             reason: InventoryOutputReason.CONSUMPTION,
+            performedBy: actor,
             note,
           }),
         );
       } else {
         item.quantity = Number(item.quantity) + amount;
         await inventory.save(item);
-        await entries.save(entries.create({ item, quantity: amount, note }));
+        await entries.save(
+          entries.create({ item, quantity: amount, performedBy: actor, note }),
+        );
       }
     }
   }
@@ -329,6 +334,7 @@ export class OrdersService {
         product.id,
         dto.quantity,
         `Producto agregado a orden ${id}`,
+        actor,
       );
       const items = manager.getRepository(OrderItemEntity);
       const existing = current.items.find(
@@ -373,6 +379,7 @@ export class OrdersService {
         item.menuItem.id,
         delta,
         `Cantidad modificada en orden ${id}`,
+        actor,
       );
       item.quantity = dto.quantity;
       item.subtotal = Number(item.unitPrice) * dto.quantity;
@@ -399,6 +406,7 @@ export class OrdersService {
         item.menuItem.id,
         -item.quantity,
         `Producto eliminado de orden ${id}`,
+        actor,
       );
       await manager.getRepository(OrderItemEntity).delete(item.id);
       return this.saveOrderTotal(manager, current);

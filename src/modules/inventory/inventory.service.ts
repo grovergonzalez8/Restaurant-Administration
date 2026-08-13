@@ -12,6 +12,7 @@ import { InventoryEntryEntity } from 'src/core/entities/inventory-entry.entity';
 import { InventoryItemEntity } from 'src/core/entities/inventory-item.entity';
 import { InventoryOutputEntity } from 'src/core/entities/inventory-output.entity';
 import { InventoryOutputReason } from 'src/core/enums/inventory-output-reason.enum';
+import { UserEntity } from 'src/core/entities/user.entity';
 import { DataSource, Repository } from 'typeorm';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 
@@ -32,6 +33,10 @@ export class InventoryService {
     return this.itemRepository.find();
   }
 
+  private actorReference(actor: UserEntity): UserEntity {
+    return { id: actor.id, name: actor.name } as UserEntity;
+  }
+
   async findLowStock() {
     const items = await this.itemRepository.find();
     return items.filter(
@@ -47,7 +52,7 @@ export class InventoryService {
     return item;
   }
 
-  async createItem(dto: CreateInventoryItemDto) {
+  async createItem(dto: CreateInventoryItemDto, actor: UserEntity) {
     const result = await this.dataSource.transaction(async (manager) => {
       const items = manager.getRepository(InventoryItemEntity);
       const entries = manager.getRepository(InventoryEntryEntity);
@@ -58,6 +63,7 @@ export class InventoryService {
               entries.create({
                 item,
                 quantity: dto.quantity,
+                performedBy: this.actorReference(actor),
                 note: 'Stock inicial',
               }),
             )
@@ -69,7 +75,7 @@ export class InventoryService {
     return result.item;
   }
 
-  async updateItem(id: string, dto: UpdateInventoryItemDto) {
+  async updateItem(id: string, dto: UpdateInventoryItemDto, actor: UserEntity) {
     const result = await this.dataSource.transaction(async (manager) => {
       const items = manager.getRepository(InventoryItemEntity);
       const entries = manager.getRepository(InventoryEntryEntity);
@@ -93,6 +99,7 @@ export class InventoryService {
             entries.create({
               item,
               quantity: difference,
+              performedBy: this.actorReference(actor),
               note: 'Ajuste manual de inventario',
             }),
           );
@@ -103,6 +110,7 @@ export class InventoryService {
               item,
               quantity: Math.abs(difference),
               reason: InventoryOutputReason.ADJUSTMENT,
+              performedBy: this.actorReference(actor),
               note: 'Ajuste manual de inventario',
             }),
           );
@@ -125,10 +133,16 @@ export class InventoryService {
   }
 
   findAllEntries() {
-    return this.entryRepository.find();
+    return this.entryRepository
+      .createQueryBuilder('entry')
+      .leftJoinAndSelect('entry.item', 'item')
+      .leftJoin('entry.performedBy', 'performedBy')
+      .addSelect(['performedBy.id', 'performedBy.name'])
+      .orderBy('entry.createdAt', 'DESC')
+      .getMany();
   }
 
-  async createEntry(dto: CreateInventoryEntryDto) {
+  async createEntry(dto: CreateInventoryEntryDto, actor: UserEntity) {
     const entry = await this.dataSource.transaction(async (manager) => {
       const items = manager.getRepository(InventoryItemEntity);
       const item = await items.findOne({
@@ -143,6 +157,7 @@ export class InventoryService {
         manager.create(InventoryEntryEntity, {
           item,
           quantity: dto.quantity,
+          performedBy: this.actorReference(actor),
           note: dto.note,
         }),
       );
@@ -152,10 +167,16 @@ export class InventoryService {
   }
 
   findAllOutputs() {
-    return this.outputRepository.find();
+    return this.outputRepository
+      .createQueryBuilder('output')
+      .leftJoinAndSelect('output.item', 'item')
+      .leftJoin('output.performedBy', 'performedBy')
+      .addSelect(['performedBy.id', 'performedBy.name'])
+      .orderBy('output.createdAt', 'DESC')
+      .getMany();
   }
 
-  async createOutput(dto: CreateInvnetoryOutputDto) {
+  async createOutput(dto: CreateInvnetoryOutputDto, actor: UserEntity) {
     const output = await this.dataSource.transaction(async (manager) => {
       const items = manager.getRepository(InventoryItemEntity);
       const item = await items.findOne({
@@ -174,6 +195,7 @@ export class InventoryService {
           item,
           quantity: dto.quantity,
           reason: dto.reason,
+          performedBy: this.actorReference(actor),
           note: dto.note,
         }),
       );

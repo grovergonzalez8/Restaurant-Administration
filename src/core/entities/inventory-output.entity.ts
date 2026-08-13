@@ -2,12 +2,14 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { InventoryItemEntity } from './inventory-item.entity';
 import { InventoryOutputReason } from '../enums/inventory-output-reason.enum';
+import { UserEntity } from './user.entity';
 
 @Entity('inventoryOutputs')
 export class InventoryOutputEntity {
@@ -26,6 +28,10 @@ export class InventoryOutputEntity {
     default: InventoryOutputReason.CONSUMPTION,
   })
   reason: InventoryOutputReason;
+
+  @ManyToOne(() => UserEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'performedById' })
+  performedBy?: UserEntity;
 
   @Column({ nullable: true })
   note?: string;
