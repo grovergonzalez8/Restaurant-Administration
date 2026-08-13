@@ -141,8 +141,15 @@ export class DashboardService {
           id: item.id,
           name: item.name,
           quantity: Number(item.quantity),
+          minStock: Number(item.minStock),
+          shortage: Math.max(Number(item.minStock) - Number(item.quantity), 0),
           unit: item.unit,
-        })),
+          severity: Number(item.quantity) <= 0 ? 'out' : 'low',
+        }))
+        .sort((a, b) => {
+          if (a.severity !== b.severity) return a.severity === 'out' ? -1 : 1;
+          return b.shortage - a.shortage || a.name.localeCompare(b.name);
+        }),
     };
   }
 }
