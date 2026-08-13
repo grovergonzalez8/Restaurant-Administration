@@ -19,6 +19,7 @@ import { TableStatus } from 'src/core/enums/table-status.enum';
 import { MenuStatus } from 'src/core/enums/menu-status.enum';
 import { InventoryItemEntity } from 'src/core/entities/inventory-item.entity';
 import { InventoryOutputEntity } from 'src/core/entities/inventory-output.entity';
+import { InventoryOutputReason } from 'src/core/enums/inventory-output-reason.enum';
 import { InventoryEntryEntity } from 'src/core/entities/inventory-entry.entity';
 import { RecipeItemEntity } from 'src/core/entities/recipe-item.entity';
 import { DataSource, EntityManager, Repository } from 'typeorm';
@@ -162,6 +163,7 @@ export class OrdersService {
           outputs.create({
             item: stockItem,
             quantity: required,
+            reason: InventoryOutputReason.CONSUMPTION,
             note: 'Salida automática por orden',
           }),
         );
@@ -281,7 +283,14 @@ export class OrdersService {
         }
         item.quantity = Number(item.quantity) - amount;
         await inventory.save(item);
-        await outputs.save(outputs.create({ item, quantity: amount, note }));
+        await outputs.save(
+          outputs.create({
+            item,
+            quantity: amount,
+            reason: InventoryOutputReason.CONSUMPTION,
+            note,
+          }),
+        );
       } else {
         item.quantity = Number(item.quantity) + amount;
         await inventory.save(item);

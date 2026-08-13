@@ -7,6 +7,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { InventoryItemEntity } from './inventory-item.entity';
+import { InventoryOutputReason } from '../enums/inventory-output-reason.enum';
 
 @Entity('inventoryOutputs')
 export class InventoryOutputEntity {
@@ -18,6 +19,13 @@ export class InventoryOutputEntity {
 
   @Column('decimal', { precision: 10, scale: 2 })
   quantity: number;
+
+  @Column({
+    type: 'varchar',
+    length: 20,
+    default: InventoryOutputReason.CONSUMPTION,
+  })
+  reason: InventoryOutputReason;
 
   @Column({ nullable: true })
   note?: string;

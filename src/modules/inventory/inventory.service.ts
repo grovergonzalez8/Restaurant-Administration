@@ -11,6 +11,7 @@ import { UpdateInventoryItemDto } from 'src/core/dtos/inventory/update-inventory
 import { InventoryEntryEntity } from 'src/core/entities/inventory-entry.entity';
 import { InventoryItemEntity } from 'src/core/entities/inventory-item.entity';
 import { InventoryOutputEntity } from 'src/core/entities/inventory-output.entity';
+import { InventoryOutputReason } from 'src/core/enums/inventory-output-reason.enum';
 import { DataSource, Repository } from 'typeorm';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 
@@ -101,6 +102,7 @@ export class InventoryService {
             outputs.create({
               item,
               quantity: Math.abs(difference),
+              reason: InventoryOutputReason.ADJUSTMENT,
               note: 'Ajuste manual de inventario',
             }),
           );
@@ -171,6 +173,7 @@ export class InventoryService {
         manager.create(InventoryOutputEntity, {
           item,
           quantity: dto.quantity,
+          reason: dto.reason,
           note: dto.note,
         }),
       );

@@ -3,6 +3,7 @@ import { InventoryEntryEntity } from 'src/core/entities/inventory-entry.entity';
 import { InventoryItemEntity } from 'src/core/entities/inventory-item.entity';
 import { InventoryOutputEntity } from 'src/core/entities/inventory-output.entity';
 import { InventoryService } from './inventory.service';
+import { InventoryOutputReason } from 'src/core/enums/inventory-output-reason.enum';
 
 describe('InventoryService traceability', () => {
   const items = {
@@ -12,7 +13,11 @@ describe('InventoryService traceability', () => {
   };
   const entries = { create: jest.fn(), save: jest.fn() };
   const outputs = { create: jest.fn(), save: jest.fn() };
+  const managerCreate = jest.fn();
+  const managerSave = jest.fn();
   const manager = {
+    create: managerCreate,
+    save: managerSave,
     getRepository: jest.fn((entity: unknown) => {
       if (entity === InventoryItemEntity) return items;
       if (entity === InventoryEntryEntity) return entries;
@@ -70,8 +75,38 @@ describe('InventoryService traceability', () => {
 
     expect(result.quantity).toBe(6);
     expect(outputs.create).toHaveBeenCalledWith(
-      expect.objectContaining({ quantity: 4 }),
+      expect.objectContaining({
+        quantity: 4,
+        reason: InventoryOutputReason.ADJUSTMENT,
+      }),
     );
     expect(realtime.emit).toHaveBeenCalledWith('inventory.output', output);
+  });
+
+  it('records the selected reason for a manual output', async () => {
+    const item = { id: 'stock-1', name: 'Carne', quantity: 10 };
+    const output = {
+      id: 'output-1',
+      item,
+      quantity: 2,
+      reason: InventoryOutputReason.WASTE,
+    };
+    items.findOne.mockResolvedValue(item);
+    items.save.mockResolvedValue(item);
+    managerCreate.mockReturnValue(output);
+    managerSave.mockResolvedValue(output);
+
+    const result = await service.createOutput({
+      itemId: item.id,
+      quantity: 2,
+      reason: InventoryOutputReason.WASTE,
+      note: 'Producto vencido',
+    });
+
+    expect(managerCreate).toHaveBeenCalledWith(
+      InventoryOutputEntity,
+      expect.objectContaining({ reason: InventoryOutputReason.WASTE }),
+    );
+    expect(result).toBe(output);
   });
 });
