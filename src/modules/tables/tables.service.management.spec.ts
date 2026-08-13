@@ -4,7 +4,6 @@ import { TableEntity } from 'src/core/entities/table.entity';
 import { ReservationEntity } from 'src/core/entities/reservation.entity';
 import { ReservationStatus } from 'src/core/enums/reservation-status.enum';
 import { TableStatus } from 'src/core/enums/table-status.enum';
-import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { TablesService } from './tables.service';
 
 describe('TablesService management', () => {
@@ -19,7 +18,7 @@ describe('TablesService management', () => {
   const service = new TablesService(
     repository as unknown as Repository<TableEntity>,
     reservations as unknown as Repository<ReservationEntity>,
-    realtime as unknown as RealtimeGateway,
+    realtime,
   );
 
   beforeEach(() => {

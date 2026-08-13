@@ -53,7 +53,7 @@ describe('Restaurant operational flow (integration)', () => {
       menuItem: product,
       inventoryItem: stock,
       quantity: 2,
-    } as RecipeItemEntity;
+    };
     let order: OrderEntity | null = null;
     let kitchenTicket: KitchenOrderEntity | null = null;
     let cashSession: CashSessionEntity | null = null;

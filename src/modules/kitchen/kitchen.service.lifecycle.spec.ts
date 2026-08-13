@@ -5,7 +5,6 @@ import { OrderStatus } from 'src/core/enums/order-status.enum';
 import { Repository } from 'typeorm';
 import { KitchenOrderEntity } from 'src/core/entities/kitchen-order.entity';
 import { OrderEntity } from 'src/core/entities/order.entity';
-import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { OrdersService } from '../orders/orders.service';
 
 describe('KitchenService lifecycle', () => {
@@ -20,7 +19,7 @@ describe('KitchenService lifecycle', () => {
   const service = new KitchenService(
     kitchenRepository as unknown as Repository<KitchenOrderEntity>,
     orderRepository as Repository<OrderEntity>,
-    realtime as unknown as RealtimeGateway,
+    realtime,
     ordersService as unknown as OrdersService,
   );
 

@@ -5,7 +5,6 @@ import { TableEntity } from 'src/core/entities/table.entity';
 import { ReservationStatus } from 'src/core/enums/reservation-status.enum';
 import { TableStatus } from 'src/core/enums/table-status.enum';
 import { ReservationsService } from './reservations.service';
-import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 describe('ReservationsService scheduling', () => {
   const reservations = {
@@ -32,7 +31,7 @@ describe('ReservationsService scheduling', () => {
     reservations as unknown as Repository<ReservationEntity>,
     tables as unknown as Repository<TableEntity>,
     dataSource,
-    realtime as unknown as RealtimeGateway,
+    realtime,
   );
 
   beforeEach(() => jest.clearAllMocks());

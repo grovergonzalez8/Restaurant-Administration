@@ -5,7 +5,6 @@ import { OrderStatus } from 'src/core/enums/order-status.enum';
 import { TableStatus } from 'src/core/enums/table-status.enum';
 import { ReservationStatus } from 'src/core/enums/reservation-status.enum';
 import { TablesService } from './tables.service';
-import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 describe('TablesService operational overview', () => {
   const query = {
@@ -18,7 +17,7 @@ describe('TablesService operational overview', () => {
   const service = new TablesService(
     repository as unknown as Repository<TableEntity>,
     {} as Repository<ReservationEntity>,
-    { emit: jest.fn() } as unknown as RealtimeGateway,
+    { emit: jest.fn() },
   );
 
   beforeEach(() => {

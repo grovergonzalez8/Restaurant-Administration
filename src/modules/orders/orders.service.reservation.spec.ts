@@ -12,7 +12,6 @@ import { UserEntity } from 'src/core/entities/user.entity';
 import { MenuStatus } from 'src/core/enums/menu-status.enum';
 import { ReservationStatus } from 'src/core/enums/reservation-status.enum';
 import { TableStatus } from 'src/core/enums/table-status.enum';
-import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { OrdersService } from './orders.service';
 
 describe('OrdersService reservation handoff', () => {
@@ -56,7 +55,7 @@ describe('OrdersService reservation handoff', () => {
     {} as Repository<TableEntity>,
     {} as Repository<KitchenOrderEntity>,
     dataSource,
-    realtime as unknown as RealtimeGateway,
+    realtime,
   );
   const waiter = { id: 'waiter-1' } as UserEntity;
 

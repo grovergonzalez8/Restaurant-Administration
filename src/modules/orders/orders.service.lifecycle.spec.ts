@@ -5,7 +5,6 @@ import { MenuItemEntity } from 'src/core/entities/menu-item.entity';
 import { OrderEntity } from 'src/core/entities/order.entity';
 import { TableEntity } from 'src/core/entities/table.entity';
 import { OrderStatus } from 'src/core/enums/order-status.enum';
-import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { OrdersService } from './orders.service';
 
 describe('OrdersService lifecycle', () => {
@@ -33,7 +32,7 @@ describe('OrdersService lifecycle', () => {
     {} as Repository<TableEntity>,
     {} as Repository<KitchenOrderEntity>,
     dataSource,
-    { emit: jest.fn() } as unknown as RealtimeGateway,
+    { emit: jest.fn() },
   );
 
   beforeEach(() => jest.clearAllMocks());

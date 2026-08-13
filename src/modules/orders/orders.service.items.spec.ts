@@ -12,7 +12,6 @@ import { TableEntity } from 'src/core/entities/table.entity';
 import { UserEntity } from 'src/core/entities/user.entity';
 import { MenuStatus } from 'src/core/enums/menu-status.enum';
 import { OrderStatus } from 'src/core/enums/order-status.enum';
-import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { OrdersService } from './orders.service';
 
 describe('OrdersService item editing', () => {
@@ -56,7 +55,7 @@ describe('OrdersService item editing', () => {
     {} as Repository<TableEntity>,
     {} as Repository<KitchenOrderEntity>,
     dataSource,
-    realtimeMock as unknown as RealtimeGateway,
+    realtimeMock,
   );
   const actor = { id: 'user-1', role: { name: 'waiter' } } as UserEntity;
 

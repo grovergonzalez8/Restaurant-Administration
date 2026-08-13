@@ -2,7 +2,6 @@ import { Repository } from 'typeorm';
 import { KitchenOrderEntity } from 'src/core/entities/kitchen-order.entity';
 import { OrderEntity } from 'src/core/entities/order.entity';
 import { KitchenStatus } from 'src/core/enums/kitchen-status.enum';
-import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { OrdersService } from '../orders/orders.service';
 import { KitchenService } from './kitchen.service';
 
@@ -11,7 +10,7 @@ describe('KitchenService', () => {
   const service = new KitchenService(
     repository as unknown as Repository<KitchenOrderEntity>,
     {} as Repository<OrderEntity>,
-    { emit: jest.fn() } as unknown as RealtimeGateway,
+    { emit: jest.fn() },
     { update: jest.fn() } as unknown as OrdersService,
   );
 

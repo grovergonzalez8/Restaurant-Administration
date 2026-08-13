@@ -2,7 +2,6 @@ import { DataSource, EntityManager, Repository } from 'typeorm';
 import { InventoryEntryEntity } from 'src/core/entities/inventory-entry.entity';
 import { InventoryItemEntity } from 'src/core/entities/inventory-item.entity';
 import { InventoryOutputEntity } from 'src/core/entities/inventory-output.entity';
-import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { InventoryService } from './inventory.service';
 
 describe('InventoryService traceability', () => {
@@ -32,7 +31,7 @@ describe('InventoryService traceability', () => {
     {} as Repository<InventoryEntryEntity>,
     {} as Repository<InventoryOutputEntity>,
     dataSource,
-    realtime as unknown as RealtimeGateway,
+    realtime,
   );
 
   beforeEach(() => jest.clearAllMocks());
