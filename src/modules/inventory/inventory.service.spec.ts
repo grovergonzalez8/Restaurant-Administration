@@ -60,7 +60,7 @@ describe('InventoryService traceability', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('records initial stock as an inventory entry', async () => {
-    const item = { id: 'stock-1', name: 'Carne', quantity: 10 };
+    const item = { id: 'stock-1', name: 'Carne', quantity: 10, unitCost: 52 };
     const entry = { id: 'entry-1', item, quantity: 10 };
     items.create.mockReturnValue(item);
     items.save.mockResolvedValue(item);
@@ -72,6 +72,7 @@ describe('InventoryService traceability', () => {
         name: 'Carne',
         quantity: 10,
         minStock: 2,
+        unitCost: 52,
         unit: 'kg',
       },
       actor,
@@ -81,6 +82,7 @@ describe('InventoryService traceability', () => {
     expect(entries.create).toHaveBeenCalledWith(
       expect.objectContaining({
         quantity: 10,
+        unitCost: 52,
         performedBy: actor,
         note: 'Stock inicial',
       }),
@@ -89,7 +91,7 @@ describe('InventoryService traceability', () => {
   });
 
   it('records a quantity reduction as an inventory output', async () => {
-    const item = { id: 'stock-1', name: 'Carne', quantity: 10 };
+    const item = { id: 'stock-1', name: 'Carne', quantity: 10, unitCost: 50 };
     const output = { id: 'output-1', item, quantity: 4 };
     items.findOne.mockResolvedValue(item);
     items.save.mockResolvedValue(item);
@@ -102,6 +104,7 @@ describe('InventoryService traceability', () => {
     expect(outputs.create).toHaveBeenCalledWith(
       expect.objectContaining({
         quantity: 4,
+        unitCost: 50,
         reason: InventoryOutputReason.ADJUSTMENT,
         performedBy: actor,
       }),
@@ -110,7 +113,7 @@ describe('InventoryService traceability', () => {
   });
 
   it('records the selected reason for a manual output', async () => {
-    const item = { id: 'stock-1', name: 'Carne', quantity: 10 };
+    const item = { id: 'stock-1', name: 'Carne', quantity: 10, unitCost: 50 };
     const output = {
       id: 'output-1',
       item,
@@ -136,10 +139,28 @@ describe('InventoryService traceability', () => {
       InventoryOutputEntity,
       expect.objectContaining({
         reason: InventoryOutputReason.WASTE,
+        unitCost: 50,
         performedBy: actor,
       }),
     );
     expect(result).toBe(output);
+  });
+
+  it('preserves the current cost when an entry omits it', async () => {
+    const item = { id: 'stock-1', name: 'Carne', quantity: 10, unitCost: 50 };
+    const entry = { id: 'entry-1', item, quantity: 2, unitCost: 50 };
+    items.findOne.mockResolvedValue(item);
+    items.save.mockResolvedValue(item);
+    managerCreate.mockReturnValue(entry);
+    managerSave.mockResolvedValue(entry);
+
+    await service.createEntry({ itemId: item.id, quantity: 2 }, actor);
+
+    expect(item.unitCost).toBe(50);
+    expect(managerCreate).toHaveBeenCalledWith(
+      InventoryEntryEntity,
+      expect.objectContaining({ unitCost: 50 }),
+    );
   });
 
   it('selects only the safe actor fields in movement history', async () => {

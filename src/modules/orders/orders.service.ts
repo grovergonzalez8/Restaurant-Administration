@@ -163,6 +163,7 @@ export class OrdersService {
           outputs.create({
             item: stockItem,
             quantity: required,
+            unitCost: Number(stockItem.unitCost),
             reason: InventoryOutputReason.CONSUMPTION,
             performedBy: createdBy,
             note: 'Salida automática por orden',
@@ -289,6 +290,7 @@ export class OrdersService {
           outputs.create({
             item,
             quantity: amount,
+            unitCost: Number(item.unitCost),
             reason: InventoryOutputReason.CONSUMPTION,
             performedBy: actor,
             note,
@@ -298,7 +300,13 @@ export class OrdersService {
         item.quantity = Number(item.quantity) + amount;
         await inventory.save(item);
         await entries.save(
-          entries.create({ item, quantity: amount, performedBy: actor, note }),
+          entries.create({
+            item,
+            quantity: amount,
+            unitCost: Number(item.unitCost),
+            performedBy: actor,
+            note,
+          }),
         );
       }
     }

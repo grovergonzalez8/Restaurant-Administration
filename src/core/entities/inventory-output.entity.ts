@@ -22,6 +22,9 @@ export class InventoryOutputEntity {
   @Column('decimal', { precision: 10, scale: 2 })
   quantity: number;
 
+  @Column('decimal', { precision: 12, scale: 2, default: 0 })
+  unitCost: number;
+
   @Column({
     type: 'varchar',
     length: 20,

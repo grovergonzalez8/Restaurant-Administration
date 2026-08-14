@@ -95,13 +95,13 @@ const legacyMenuItemNames = [
 ];
 
 const inventorySeedItems = [
-  { name: 'Carne de res', unit: 'kg', quantity: 18, description: 'Carne para brochetas' },
-  { name: 'Pechuga de pollo', unit: 'kg', quantity: 14, description: 'Pollo fresco para brochetas' },
-  { name: 'Aceitunas', unit: 'kg', quantity: 6, description: 'Aceitunas para los platos de demostración' },
-  { name: 'Aguacate', unit: 'kg', quantity: 10, description: 'Aguacate fresco' },
-  { name: 'Pescado barramundi', unit: 'kg', quantity: 12, description: 'Pescado fresco' },
-  { name: 'Té negro', unit: 'g', quantity: 800, description: 'Té para las bebidas de demostración' },
-  { name: 'Leche', unit: 'l', quantity: 15, description: 'Leche para las bebidas de demostración' },
+  { name: 'Carne de res', unit: 'kg', quantity: 18, unitCost: 52, description: 'Carne para brochetas' },
+  { name: 'Pechuga de pollo', unit: 'kg', quantity: 14, unitCost: 28, description: 'Pollo fresco para brochetas' },
+  { name: 'Aceitunas', unit: 'kg', quantity: 6, unitCost: 34, description: 'Aceitunas para los platos de demostración' },
+  { name: 'Aguacate', unit: 'kg', quantity: 10, unitCost: 25, description: 'Aguacate fresco' },
+  { name: 'Pescado barramundi', unit: 'kg', quantity: 12, unitCost: 46, description: 'Pescado fresco' },
+  { name: 'Té negro', unit: 'g', quantity: 800, unitCost: 0.08, description: 'Té para las bebidas de demostración' },
+  { name: 'Leche', unit: 'l', quantity: 15, unitCost: 9, description: 'Leche para las bebidas de demostración' },
 ];
 
 const legacyInventoryItemNames = [
@@ -166,6 +166,7 @@ async function seedDatabase() {
         await entries.save(entries.create({
           item: savedItem,
           quantity: savedItem.quantity,
+          unitCost: savedItem.unitCost,
           note: 'Inventario inicial de demo',
         }));
       }

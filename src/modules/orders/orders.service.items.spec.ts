@@ -70,7 +70,7 @@ describe('OrdersService item editing', () => {
       total: 0,
     };
     const product = { id: 'menu-1', status: MenuStatus.AVAIBLE, price: 10 };
-    const stock = { id: 'stock-1', name: 'Carne', quantity: 5 };
+    const stock = { id: 'stock-1', name: 'Carne', quantity: 5, unitCost: 50 };
     const orderItem = {
       order: current,
       menuItem: product,
@@ -98,7 +98,7 @@ describe('OrdersService item editing', () => {
 
     expect(stock.quantity).toBe(4);
     expect(outputs.create).toHaveBeenCalledWith(
-      expect.objectContaining({ performedBy: actor }),
+      expect.objectContaining({ performedBy: actor, unitCost: 50 }),
     );
     expect(current.total).toBe(20);
     expect(result).toBe(updated);
@@ -121,7 +121,7 @@ describe('OrdersService item editing', () => {
   });
 
   it('restores inventory when reducing an item quantity', async () => {
-    const stock = { id: 'stock-1', name: 'Carne', quantity: 4 };
+    const stock = { id: 'stock-1', name: 'Carne', quantity: 4, unitCost: 50 };
     const item = {
       id: 'item-1',
       menuItem: { id: 'menu-1' },
@@ -155,7 +155,7 @@ describe('OrdersService item editing', () => {
 
     expect(stock.quantity).toBe(5);
     expect(entries.create).toHaveBeenCalledWith(
-      expect.objectContaining({ performedBy: actor }),
+      expect.objectContaining({ performedBy: actor, unitCost: 50 }),
     );
     expect(current.total).toBe(10);
     expect(result).toBe(updated);

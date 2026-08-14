@@ -24,6 +24,9 @@ export class InventoryEntryEntity {
   @Column('decimal', { precision: 10, scale: 2 })
   quantity: number;
 
+  @Column('decimal', { precision: 12, scale: 2, default: 0 })
+  unitCost: number;
+
   @ManyToOne(() => UserEntity, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'performedById' })
   performedBy?: UserEntity;

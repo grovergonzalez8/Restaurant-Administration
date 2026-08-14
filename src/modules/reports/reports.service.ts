@@ -176,6 +176,7 @@ export class ReportsService {
         name: string;
         unit: string;
         quantity: number;
+        cost: number;
         movements: number;
       }
     >();
@@ -188,10 +189,14 @@ export class ReportsService {
         name: output.item.name,
         unit: output.item.unit,
         quantity: 0,
+        cost: 0,
         movements: 0,
       };
       current.quantity = roundQuantity(
         current.quantity + Number(output.quantity),
+      );
+      current.cost = roundQuantity(
+        current.cost + Number(output.quantity) * Number(output.unitCost),
       );
       current.movements += 1;
       items.set(output.item.id, current);
@@ -199,6 +204,13 @@ export class ReportsService {
 
     return {
       movements: outputs.length,
+      totalCost: roundQuantity(
+        outputs.reduce(
+          (total, output) =>
+            total + Number(output.quantity) * Number(output.unitCost),
+          0,
+        ),
+      ),
       items: [...items.values()].sort((a, b) => a.name.localeCompare(b.name)),
     };
   }

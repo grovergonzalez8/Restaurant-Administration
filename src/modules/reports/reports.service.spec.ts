@@ -111,14 +111,17 @@ describe('ReportsService', () => {
       {
         item: { id: 'stock-1', name: 'Tomate', unit: 'kg' },
         quantity: '1.20',
+        unitCost: '10.00',
       },
       {
         item: { id: 'stock-1', name: 'Tomate', unit: 'kg' },
         quantity: '0.35',
+        unitCost: '12.00',
       },
       {
         item: { id: 'stock-2', name: 'Leche', unit: 'l' },
         quantity: '0.50',
+        unitCost: '8.00',
       },
     ];
     outputs.find.mockImplementation(
@@ -135,12 +138,14 @@ describe('ReportsService', () => {
 
     expect(report).toEqual({
       movements: 3,
+      totalCost: 20.2,
       items: [
         {
           id: 'stock-2',
           name: 'Leche',
           unit: 'l',
           quantity: 0.5,
+          cost: 4,
           movements: 1,
         },
         {
@@ -148,6 +153,7 @@ describe('ReportsService', () => {
           name: 'Tomate',
           unit: 'kg',
           quantity: 1.55,
+          cost: 16.2,
           movements: 2,
         },
       ],

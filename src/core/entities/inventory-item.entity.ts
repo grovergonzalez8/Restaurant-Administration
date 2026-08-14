@@ -1,36 +1,46 @@
-import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { InventoryOutputEntity } from "./inventory-output.entity";
-import { InventoryEntryEntity } from "./inventory-entry.entity";
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { InventoryOutputEntity } from './inventory-output.entity';
+import { InventoryEntryEntity } from './inventory-entry.entity';
 
 @Entity('inventoryItem')
 export class InventoryItemEntity {
-   @PrimaryGeneratedColumn('uuid') 
-    id: string;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-    @Column()
-    name: string;
+  @Column()
+  name: string;
 
-    @Column({ nullable: true })
-    description?: string;
-    
-    @Column('decimal', { precision: 10, scale: 2, default: 0 })
-    quantity: number;
+  @Column({ nullable: true })
+  description?: string;
 
-    @Column('decimal', { precision: 10, scale: 2, default: 5 })
-    minStock: number;
+  @Column('decimal', { precision: 10, scale: 2, default: 0 })
+  quantity: number;
 
-    @Column()
-    unit: string;
+  @Column('decimal', { precision: 10, scale: 2, default: 5 })
+  minStock: number;
 
-    @OneToMany(() => InventoryEntryEntity, entry => entry.item)
-    entries: InventoryEntryEntity[];
+  @Column('decimal', { precision: 12, scale: 2, default: 0 })
+  unitCost: number;
 
-    @OneToMany(() => InventoryOutputEntity, output => output.item)
-    outputs: InventoryOutputEntity[];
-    
-    @CreateDateColumn()
-    createdAt: Date;
+  @Column()
+  unit: string;
 
-    @UpdateDateColumn()
-    updatedAt: Date;
+  @OneToMany(() => InventoryEntryEntity, (entry) => entry.item)
+  entries: InventoryEntryEntity[];
+
+  @OneToMany(() => InventoryOutputEntity, (output) => output.item)
+  outputs: InventoryOutputEntity[];
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

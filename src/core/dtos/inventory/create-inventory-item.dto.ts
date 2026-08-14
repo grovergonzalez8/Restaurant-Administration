@@ -1,25 +1,36 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString, Min } from "class-validator";
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 
 export class CreateInventoryItemDto {
-    @IsNotEmpty()
-    @IsString()
-    name: string;
+  @IsNotEmpty()
+  @IsString()
+  name: string;
 
-    @IsString()
-    @IsOptional()
-    description?: string;
+  @IsString()
+  @IsOptional()
+  description?: string;
 
-    @IsNotEmpty()
-    @IsNumber()
-    @Min(0)
-    quantity: number;
+  @IsNotEmpty()
+  @IsNumber()
+  @Min(0)
+  quantity: number;
 
-    @IsOptional()
-    @IsNumber()
-    @Min(0)
-    minStock?: number;
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  minStock?: number;
 
-    @IsNotEmpty()
-    @IsString()
-    unit: string;
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  unitCost?: number;
+
+  @IsNotEmpty()
+  @IsString()
+  unit: string;
 }

@@ -63,6 +63,7 @@ export class InventoryService {
               entries.create({
                 item,
                 quantity: dto.quantity,
+                unitCost: Number(item.unitCost),
                 performedBy: this.actorReference(actor),
                 note: 'Stock inicial',
               }),
@@ -99,6 +100,7 @@ export class InventoryService {
             entries.create({
               item,
               quantity: difference,
+              unitCost: Number(item.unitCost),
               performedBy: this.actorReference(actor),
               note: 'Ajuste manual de inventario',
             }),
@@ -109,6 +111,7 @@ export class InventoryService {
             outputs.create({
               item,
               quantity: Math.abs(difference),
+              unitCost: Number(item.unitCost),
               reason: InventoryOutputReason.ADJUSTMENT,
               performedBy: this.actorReference(actor),
               note: 'Ajuste manual de inventario',
@@ -150,6 +153,7 @@ export class InventoryService {
         lock: { mode: 'pessimistic_write' },
       });
       if (!item) throw new NotFoundException('Item no encontrado');
+      if (dto.unitCost !== undefined) item.unitCost = dto.unitCost;
       item.quantity = Number(item.quantity) + dto.quantity;
       await items.save(item);
       return manager.save(
@@ -157,6 +161,7 @@ export class InventoryService {
         manager.create(InventoryEntryEntity, {
           item,
           quantity: dto.quantity,
+          unitCost: Number(item.unitCost),
           performedBy: this.actorReference(actor),
           note: dto.note,
         }),
@@ -194,6 +199,7 @@ export class InventoryService {
         manager.create(InventoryOutputEntity, {
           item,
           quantity: dto.quantity,
+          unitCost: Number(item.unitCost),
           reason: dto.reason,
           performedBy: this.actorReference(actor),
           note: dto.note,
