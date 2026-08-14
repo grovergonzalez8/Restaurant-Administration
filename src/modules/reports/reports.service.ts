@@ -109,6 +109,81 @@ export class ReportsService {
     return [...products.values()].sort((a, b) => b.quantity - a.quantity);
   }
 
+  async profitability(period: ReportPeriodDto) {
+    const createdAt = this.dateRange(period);
+    const payments = await this.payments.find({
+      where: createdAt ? { createdAt } : {},
+      relations: { order: { items: { menuItem: true } } },
+      loadEagerRelations: false,
+    });
+    const roundMoney = (value: number) =>
+      Math.round((value + Number.EPSILON) * 100) / 100;
+    const products = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        quantity: number;
+        revenue: number;
+        trackedRevenue: number;
+        cost: number;
+        untrackedQuantity: number;
+      }
+    >();
+
+    for (const payment of payments) {
+      for (const item of payment.order.items) {
+        const current = products.get(item.menuItem.id) ?? {
+          id: item.menuItem.id,
+          name: item.menuItem.name,
+          quantity: 0,
+          revenue: 0,
+          trackedRevenue: 0,
+          cost: 0,
+          untrackedQuantity: 0,
+        };
+        current.quantity += item.quantity;
+        current.revenue += Number(item.subtotal);
+        if (item.costTracked) {
+          current.trackedRevenue += Number(item.subtotal);
+          current.cost += Number(item.unitCost) * item.quantity;
+        } else {
+          current.untrackedQuantity += item.quantity;
+        }
+        products.set(item.menuItem.id, current);
+      }
+    }
+
+    const details = [...products.values()].map((product) => ({
+      ...product,
+      revenue: roundMoney(product.revenue),
+      trackedRevenue: roundMoney(product.trackedRevenue),
+      cost: roundMoney(product.cost),
+      grossProfit: roundMoney(product.trackedRevenue - product.cost),
+    }));
+    const revenue = roundMoney(
+      details.reduce((total, product) => total + product.revenue, 0),
+    );
+    const trackedRevenue = roundMoney(
+      details.reduce((total, product) => total + product.trackedRevenue, 0),
+    );
+    const cost = roundMoney(
+      details.reduce((total, product) => total + product.cost, 0),
+    );
+
+    return {
+      payments: payments.length,
+      revenue,
+      trackedRevenue,
+      untrackedRevenue: roundMoney(revenue - trackedRevenue),
+      cost,
+      grossProfit: roundMoney(trackedRevenue - cost),
+      foodCostPercentage:
+        trackedRevenue > 0 ? roundMoney((cost / trackedRevenue) * 100) : null,
+      products: details.sort((a, b) => b.grossProfit - a.grossProfit),
+    };
+  }
+
   async inventory(period: ReportPeriodDto) {
     const createdAt = this.dateRange(period);
     const options = {

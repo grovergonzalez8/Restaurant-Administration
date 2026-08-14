@@ -21,6 +21,11 @@ export class ReportsController {
     return this.reportsService.topProducts(period);
   }
 
+  @Get('profitability')
+  profitability(@Query() period: ReportPeriodDto) {
+    return this.reportsService.profitability(period);
+  }
+
   @Get('inventory')
   inventory(@Query() period: ReportPeriodDto) {
     return this.reportsService.inventory(period);

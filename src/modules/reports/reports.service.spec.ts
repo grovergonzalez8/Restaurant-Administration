@@ -60,6 +60,63 @@ describe('ReportsService', () => {
     ]);
   });
 
+  it('reports historical profitability only from tracked cost snapshots', async () => {
+    payments.find.mockResolvedValue([
+      {
+        order: {
+          items: [
+            {
+              menuItem: { id: 'menu-1', name: 'Silpancho' },
+              quantity: 2,
+              subtotal: '50.00',
+              unitCost: '8.50',
+              costTracked: true,
+            },
+            {
+              menuItem: { id: 'menu-2', name: 'Refresco' },
+              quantity: 1,
+              subtotal: '10.00',
+              unitCost: '0.00',
+              costTracked: false,
+            },
+          ],
+        },
+      },
+    ]);
+
+    await expect(service.profitability({})).resolves.toEqual({
+      payments: 1,
+      revenue: 60,
+      trackedRevenue: 50,
+      untrackedRevenue: 10,
+      cost: 17,
+      grossProfit: 33,
+      foodCostPercentage: 34,
+      products: [
+        {
+          id: 'menu-1',
+          name: 'Silpancho',
+          quantity: 2,
+          revenue: 50,
+          trackedRevenue: 50,
+          cost: 17,
+          grossProfit: 33,
+          untrackedQuantity: 0,
+        },
+        {
+          id: 'menu-2',
+          name: 'Refresco',
+          quantity: 1,
+          revenue: 10,
+          trackedRevenue: 0,
+          cost: 0,
+          grossProfit: 0,
+          untrackedQuantity: 1,
+        },
+      ],
+    });
+  });
+
   it('groups inventory movements without mixing units', async () => {
     const item = { id: 'stock-1', name: 'Carne', unit: 'kg' };
     const otherItem = { id: 'stock-2', name: 'Sal', unit: 'g' };
