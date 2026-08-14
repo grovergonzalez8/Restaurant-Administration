@@ -100,6 +100,9 @@ describe('OrdersService item editing', () => {
     expect(outputs.create).toHaveBeenCalledWith(
       expect.objectContaining({ performedBy: actor, unitCost: 50 }),
     );
+    expect(items.create).toHaveBeenCalledWith(
+      expect.objectContaining({ unitCost: 25, costTracked: true }),
+    );
     expect(current.total).toBe(20);
     expect(result).toBe(updated);
     expect(realtimeMock.emit).toHaveBeenCalledWith('order.updated', updated);
@@ -128,6 +131,8 @@ describe('OrdersService item editing', () => {
       quantity: 3,
       unitPrice: 10,
       subtotal: 30,
+      unitCost: 25,
+      costTracked: true,
     };
     const current = {
       id: 'order-1',
@@ -160,5 +165,7 @@ describe('OrdersService item editing', () => {
     expect(current.total).toBe(10);
     expect(result).toBe(updated);
     expect(entries.save).toHaveBeenCalled();
+    expect(item.unitCost).toBe(25);
+    expect(item.costTracked).toBe(true);
   });
 });

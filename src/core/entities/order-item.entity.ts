@@ -32,4 +32,10 @@ export class OrderItemEntity {
 
   @Column('decimal', { precision: 10, scale: 2 })
   subtotal: number;
+
+  @Column('decimal', { precision: 12, scale: 4, default: 0 })
+  unitCost: number;
+
+  @Column({ default: false })
+  costTracked: boolean;
 }

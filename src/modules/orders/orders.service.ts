@@ -128,16 +128,28 @@ export class OrdersService {
           throw new ConflictException(
             `Producto ${product.name} no está disponible`,
           );
-        const orderItem = manager.create(OrderItemEntity, {
-          menuItem: product,
-          quantity: item.quantity,
-          unitPrice: product.price,
-          subtotal: Number(product.price) * item.quantity,
-        });
-        order.items.push(orderItem);
         const ingredients = await recipes.find({
           where: { menuItem: { id: product.id } },
         });
+        const unitCost = this.roundCost(
+          ingredients.reduce(
+            (total, ingredient) =>
+              total +
+              Number(ingredient.quantity) *
+                Number(ingredient.inventoryItem.unitCost),
+            0,
+          ),
+        );
+        order.items.push(
+          manager.create(OrderItemEntity, {
+            menuItem: product,
+            quantity: item.quantity,
+            unitPrice: product.price,
+            subtotal: Number(product.price) * item.quantity,
+            unitCost,
+            costTracked: ingredients.length > 0,
+          }),
+        );
         for (const ingredient of ingredients) {
           const required = Number(ingredient.quantity) * item.quantity;
           consumption.set(
@@ -265,7 +277,7 @@ export class OrdersService {
     note: string,
     actor: UserEntity,
   ) {
-    if (!quantityDelta) return;
+    if (!quantityDelta) return null;
     const recipes = manager.getRepository(RecipeItemEntity);
     const inventory = manager.getRepository(InventoryItemEntity);
     const outputs = manager.getRepository(InventoryOutputEntity);
@@ -273,6 +285,7 @@ export class OrdersService {
     const ingredients = await recipes.find({
       where: { menuItem: { id: menuItemId } },
     });
+    let unitCost = 0;
     for (const ingredient of ingredients) {
       const amount = Number(ingredient.quantity) * Math.abs(quantityDelta);
       const item = await inventory.findOne({
@@ -280,6 +293,7 @@ export class OrdersService {
         lock: { mode: 'pessimistic_write' },
       });
       if (!item) throw new NotFoundException('Insumo de receta no encontrado');
+      unitCost += Number(ingredient.quantity) * Number(item.unitCost);
       if (quantityDelta > 0) {
         if (Number(item.quantity) < amount) {
           throw new ConflictException(`Stock insuficiente de ${item.name}`);
@@ -310,6 +324,14 @@ export class OrdersService {
         );
       }
     }
+    return {
+      tracked: ingredients.length > 0,
+      unitCost: this.roundCost(unitCost),
+    };
+  }
+
+  private roundCost(value: number) {
+    return Math.round((value + Number.EPSILON) * 10000) / 10000;
   }
 
   private async saveOrderTotal(manager: EntityManager, order: OrderEntity) {
@@ -337,7 +359,7 @@ export class OrdersService {
         throw new NotFoundException('Producto de menú no encontrado');
       if (product.status !== MenuStatus.AVAIBLE)
         throw new ConflictException('Producto no disponible');
-      await this.adjustInventory(
+      const costSnapshot = await this.adjustInventory(
         manager,
         product.id,
         dto.quantity,
@@ -349,8 +371,16 @@ export class OrdersService {
         (item) => item.menuItem.id === product.id,
       );
       if (existing) {
+        const previousQuantity = existing.quantity;
         existing.quantity += dto.quantity;
         existing.subtotal = Number(existing.unitPrice) * existing.quantity;
+        existing.unitCost = this.roundCost(
+          (Number(existing.unitCost) * previousQuantity +
+            Number(costSnapshot?.unitCost ?? 0) * dto.quantity) /
+            existing.quantity,
+        );
+        existing.costTracked =
+          existing.costTracked && Boolean(costSnapshot?.tracked);
         await items.save(existing);
       } else {
         await items.save(
@@ -360,6 +390,8 @@ export class OrdersService {
             quantity: dto.quantity,
             unitPrice: product.price,
             subtotal: Number(product.price) * dto.quantity,
+            unitCost: Number(costSnapshot?.unitCost ?? 0),
+            costTracked: Boolean(costSnapshot?.tracked),
           }),
         );
       }
@@ -382,13 +414,21 @@ export class OrdersService {
       if (!item)
         throw new NotFoundException('Producto de la orden no encontrado');
       const delta = dto.quantity - item.quantity;
-      await this.adjustInventory(
+      const costSnapshot = await this.adjustInventory(
         manager,
         item.menuItem.id,
         delta,
         `Cantidad modificada en orden ${id}`,
         actor,
       );
+      if (delta > 0) {
+        item.unitCost = this.roundCost(
+          (Number(item.unitCost) * item.quantity +
+            Number(costSnapshot?.unitCost ?? 0) * delta) /
+            dto.quantity,
+        );
+        item.costTracked = item.costTracked && Boolean(costSnapshot?.tracked);
+      }
       item.quantity = dto.quantity;
       item.subtotal = Number(item.unitPrice) * dto.quantity;
       await manager.getRepository(OrderItemEntity).save(item);
