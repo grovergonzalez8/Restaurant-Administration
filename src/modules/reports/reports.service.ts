@@ -4,6 +4,8 @@ import { ReportPeriodDto } from 'src/core/dtos/reports/report-period.dto';
 import { InventoryEntryEntity } from 'src/core/entities/inventory-entry.entity';
 import { InventoryOutputEntity } from 'src/core/entities/inventory-output.entity';
 import { PaymentEntity } from 'src/core/entities/payment.entity';
+import { CashSessionEntity } from 'src/core/entities/cash-session.entity';
+import { CashSessionStatus } from 'src/core/enums/cash-session-status.enum';
 import { PaymentMethod } from 'src/core/enums/payment-method.enum';
 import { InventoryOutputReason } from 'src/core/enums/inventory-output-reason.enum';
 import {
@@ -23,6 +25,8 @@ export class ReportsService {
     private readonly entries: Repository<InventoryEntryEntity>,
     @InjectRepository(InventoryOutputEntity)
     private readonly outputs: Repository<InventoryOutputEntity>,
+    @InjectRepository(CashSessionEntity)
+    private readonly sessions: Repository<CashSessionEntity>,
   ) {}
 
   private parseBoundary(value: string, endOfDay: boolean) {
@@ -181,6 +185,74 @@ export class ReportsService {
       foodCostPercentage:
         trackedRevenue > 0 ? roundMoney((cost / trackedRevenue) * 100) : null,
       products: details.sort((a, b) => b.grossProfit - a.grossProfit),
+    };
+  }
+
+  async closing(period: ReportPeriodDto) {
+    const range = this.dateRange(period);
+    const [sales, profitability, waste, sessions] = await Promise.all([
+      this.sales(period),
+      this.profitability(period),
+      this.waste(period),
+      this.sessions.find({
+        where: range
+          ? [
+              { status: CashSessionStatus.CLOSED, closedAt: range },
+              { status: CashSessionStatus.OPEN, openedAt: range },
+            ]
+          : {},
+        order: { openedAt: 'ASC' },
+      }),
+    ]);
+    const closed = sessions.filter(
+      (session) => session.status === CashSessionStatus.CLOSED,
+    );
+    const roundMoney = (value: number) =>
+      Math.round((value + Number.EPSILON) * 100) / 100;
+    const expectedCash = roundMoney(
+      closed.reduce(
+        (total, session) => total + Number(session.expectedBalance ?? 0),
+        0,
+      ),
+    );
+    const countedCash = roundMoney(
+      closed.reduce(
+        (total, session) => total + Number(session.closingBalance ?? 0),
+        0,
+      ),
+    );
+    const cashDifference = roundMoney(
+      closed.reduce(
+        (total, session) => total + Number(session.difference ?? 0),
+        0,
+      ),
+    );
+
+    return {
+      payments: sales.payments,
+      sales: roundMoney(sales.total),
+      byMethod: sales.byMethod,
+      sessions: {
+        opened: sessions.filter(
+          (session) => session.status === CashSessionStatus.OPEN,
+        ).length,
+        closed: closed.length,
+        expectedCash,
+        countedCash,
+        difference: cashDifference,
+      },
+      profitability: {
+        trackedRevenue: profitability.trackedRevenue,
+        untrackedRevenue: profitability.untrackedRevenue,
+        cost: profitability.cost,
+        grossProfit: profitability.grossProfit,
+        foodCostPercentage: profitability.foodCostPercentage,
+      },
+      waste: {
+        movements: waste.movements,
+        cost: waste.totalCost,
+      },
+      contribution: roundMoney(profitability.grossProfit - waste.totalCost),
     };
   }
 

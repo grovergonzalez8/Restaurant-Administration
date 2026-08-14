@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { InventoryEntryEntity } from 'src/core/entities/inventory-entry.entity';
 import { InventoryOutputEntity } from 'src/core/entities/inventory-output.entity';
 import { PaymentEntity } from 'src/core/entities/payment.entity';
+import { CashSessionEntity } from 'src/core/entities/cash-session.entity';
 import { AuthModule } from '../auth/auth.module';
 import { ReportsController } from './reports.controller';
 import { ReportsService } from './reports.service';
@@ -14,6 +15,7 @@ import { ReportsService } from './reports.service';
       PaymentEntity,
       InventoryEntryEntity,
       InventoryOutputEntity,
+      CashSessionEntity,
     ]),
   ],
   controllers: [ReportsController],

@@ -26,6 +26,11 @@ export class ReportsController {
     return this.reportsService.profitability(period);
   }
 
+  @Get('closing')
+  closing(@Query() period: ReportPeriodDto) {
+    return this.reportsService.closing(period);
+  }
+
   @Get('inventory')
   inventory(@Query() period: ReportPeriodDto) {
     return this.reportsService.inventory(period);

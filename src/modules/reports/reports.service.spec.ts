@@ -5,16 +5,20 @@ import { InventoryOutputEntity } from 'src/core/entities/inventory-output.entity
 import { PaymentEntity } from 'src/core/entities/payment.entity';
 import { PaymentMethod } from 'src/core/enums/payment-method.enum';
 import { InventoryOutputReason } from 'src/core/enums/inventory-output-reason.enum';
+import { CashSessionEntity } from 'src/core/entities/cash-session.entity';
+import { CashSessionStatus } from 'src/core/enums/cash-session-status.enum';
 import { ReportsService } from './reports.service';
 
 describe('ReportsService', () => {
   const payments = { find: jest.fn() };
   const entries = { find: jest.fn() };
   const outputs = { find: jest.fn() };
+  const sessions = { find: jest.fn() };
   const service = new ReportsService(
     payments as unknown as Repository<PaymentEntity>,
     entries as unknown as Repository<InventoryEntryEntity>,
     outputs as unknown as Repository<InventoryOutputEntity>,
+    sessions as unknown as Repository<CashSessionEntity>,
   );
 
   beforeEach(() => jest.clearAllMocks());
@@ -114,6 +118,67 @@ describe('ReportsService', () => {
           untrackedQuantity: 1,
         },
       ],
+    });
+  });
+
+  it('consolidates cash, profitability and waste for operational closing', async () => {
+    payments.find
+      .mockResolvedValueOnce([
+        { method: PaymentMethod.CASH, amount: '40.00' },
+        { method: PaymentMethod.CARD, amount: '60.00' },
+      ])
+      .mockResolvedValueOnce([
+        {
+          order: {
+            items: [
+              {
+                menuItem: { id: 'menu-1', name: 'Silpancho' },
+                quantity: 2,
+                subtotal: '100.00',
+                unitCost: '20.00',
+                costTracked: true,
+              },
+            ],
+          },
+        },
+      ]);
+    outputs.find.mockResolvedValue([
+      {
+        item: { id: 'stock-1', name: 'Carne', unit: 'kg' },
+        quantity: '0.10',
+        unitCost: '50.00',
+      },
+    ]);
+    sessions.find.mockResolvedValue([
+      {
+        status: CashSessionStatus.CLOSED,
+        expectedBalance: '140.00',
+        closingBalance: '138.00',
+        difference: '-2.00',
+      },
+      { status: CashSessionStatus.OPEN },
+    ]);
+
+    await expect(service.closing({})).resolves.toEqual({
+      payments: 2,
+      sales: 100,
+      byMethod: { CASH: 40, CARD: 60, QR: 0 },
+      sessions: {
+        opened: 1,
+        closed: 1,
+        expectedCash: 140,
+        countedCash: 138,
+        difference: -2,
+      },
+      profitability: {
+        trackedRevenue: 100,
+        untrackedRevenue: 0,
+        cost: 40,
+        grossProfit: 60,
+        foodCostPercentage: 40,
+      },
+      waste: { movements: 1, cost: 5 },
+      contribution: 55,
     });
   });
 
