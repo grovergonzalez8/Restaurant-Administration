@@ -65,6 +65,56 @@ export class RecipesService {
     );
   }
 
+  async menuCosts() {
+    const [menuItems, ingredients] = await Promise.all([
+      this.menu.find({ order: { name: 'ASC' } }),
+      this.recipes.find(),
+    ]);
+    const ingredientsByMenuItem = new Map<string, RecipeItemEntity[]>();
+    ingredients.forEach((ingredient) => {
+      const menuItemId = ingredient.menuItem.id;
+      ingredientsByMenuItem.set(menuItemId, [
+        ...(ingredientsByMenuItem.get(menuItemId) ?? []),
+        ingredient,
+      ]);
+    });
+
+    return menuItems.map((menuItem) => {
+      const recipe = ingredientsByMenuItem.get(menuItem.id) ?? [];
+      const details = recipe.map((ingredient) => {
+        const quantity = Number(ingredient.quantity);
+        const unitCost = Number(ingredient.inventoryItem.unitCost);
+        return {
+          recipeItemId: ingredient.id,
+          inventoryItemId: ingredient.inventoryItem.id,
+          name: ingredient.inventoryItem.name,
+          unit: ingredient.inventoryItem.unit,
+          quantity,
+          unitCost,
+          cost: this.roundMoney(quantity * unitCost),
+        };
+      });
+      const price = Number(menuItem.price);
+      const cost = this.roundMoney(
+        details.reduce((total, ingredient) => total + ingredient.cost, 0),
+      );
+      const tracked = details.length > 0;
+
+      return {
+        menuItemId: menuItem.id,
+        name: menuItem.name,
+        price,
+        tracked,
+        ingredientCount: details.length,
+        cost: tracked ? cost : null,
+        grossProfit: tracked ? this.roundMoney(price - cost) : null,
+        foodCostPercentage:
+          tracked && price > 0 ? this.roundMoney((cost / price) * 100) : null,
+        ingredients: details,
+      };
+    });
+  }
+
   private calculateAvailability(
     menuItem: MenuItemEntity,
     ingredients: RecipeItemEntity[],
@@ -97,6 +147,10 @@ export class RecipesService {
       maxServings,
       shortages: details.filter((item) => item.servings === 0),
     };
+  }
+
+  private roundMoney(value: number): number {
+    return Math.round((value + Number.EPSILON) * 100) / 100;
   }
 
   async create(dto: CreateRecipeItemDto) {

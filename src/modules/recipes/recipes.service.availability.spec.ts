@@ -83,6 +83,54 @@ describe('RecipesService availability', () => {
     expect(recipes.find).toHaveBeenCalledTimes(1);
   });
 
+  it('calculates recipe cost and gross profit from current ingredient costs', async () => {
+    menu.find.mockResolvedValue([
+      { id: 'menu-1', name: 'Silpancho', price: '40.00' },
+      { id: 'menu-2', name: 'Agua', price: '8.00' },
+    ]);
+    recipes.find.mockResolvedValue([
+      {
+        id: 'recipe-1',
+        menuItem: { id: 'menu-1' },
+        quantity: '0.25',
+        inventoryItem: {
+          id: 'stock-1',
+          name: 'Carne',
+          unit: 'kg',
+          unitCost: '52.00',
+        },
+      },
+      {
+        id: 'recipe-2',
+        menuItem: { id: 'menu-1' },
+        quantity: '0.10',
+        inventoryItem: {
+          id: 'stock-2',
+          name: 'Arroz',
+          unit: 'kg',
+          unitCost: '12.00',
+        },
+      },
+    ]);
+
+    await expect(service.menuCosts()).resolves.toEqual([
+      expect.objectContaining({
+        menuItemId: 'menu-1',
+        tracked: true,
+        ingredientCount: 2,
+        cost: 14.2,
+        grossProfit: 25.8,
+        foodCostPercentage: 35.5,
+      }),
+      expect.objectContaining({
+        menuItemId: 'menu-2',
+        tracked: false,
+        cost: null,
+        grossProfit: null,
+      }),
+    ]);
+  });
+
   it('updates ingredient quantity', async () => {
     const recipeItem = { id: 'recipe-1', quantity: 1 };
     recipes.findOne.mockResolvedValue(recipeItem);

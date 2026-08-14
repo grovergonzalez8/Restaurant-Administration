@@ -33,6 +33,12 @@ export class RecipesController {
     return this.recipesService.menuAvailability();
   }
 
+  @Get('menu/costs')
+  @Roles('admin', 'kitchen')
+  menuCosts() {
+    return this.recipesService.menuCosts();
+  }
+
   @Get('menu/:menuItemId')
   @Roles('admin', 'kitchen')
   findByMenuItem(@Param('menuItemId', ParseUUIDPipe) menuItemId: string) {
