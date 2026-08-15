@@ -17,9 +17,12 @@ export function getDatabaseSslOptions(
     throw new Error('DB_SSL debe ser true o false');
   }
 
-  const enabled = configured
-    ? configured === 'true'
-    : env.NODE_ENV?.toLowerCase() === 'production';
+  const isProduction = env.NODE_ENV?.toLowerCase() === 'production';
+  if (isProduction && configured === 'false') {
+    throw new Error('DB_SSL no puede deshabilitarse en producción');
+  }
+
+  const enabled = isProduction || configured === 'true';
   if (!enabled) return false;
 
   const ca = env.DB_SSL_CA?.replace(/\\n/g, '\n').trim();

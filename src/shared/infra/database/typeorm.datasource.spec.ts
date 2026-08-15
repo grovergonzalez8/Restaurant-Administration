@@ -29,4 +29,10 @@ describe('getDatabaseSslOptions', () => {
       getDatabaseSslOptions({ NODE_ENV: 'production', DB_SSL: 'invalid' }),
     ).toThrow('DB_SSL debe ser true o false');
   });
+
+  it('does not allow TLS to be disabled in production', () => {
+    expect(() =>
+      getDatabaseSslOptions({ NODE_ENV: 'production', DB_SSL: 'false' }),
+    ).toThrow('DB_SSL no puede deshabilitarse en producción');
+  });
 });
