@@ -28,6 +28,6 @@ import { getJwtSecret } from './jwt.config';
   ],
   providers: [AuthService, JwtStrategy, RolesGuard],
   controllers: [AuthController],
-  exports: [AuthService],
+  exports: [AuthService, JwtModule],
 })
 export class AuthModule {}
