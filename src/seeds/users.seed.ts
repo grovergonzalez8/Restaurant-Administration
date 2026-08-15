@@ -1,115 +1,105 @@
 import { INestApplicationContext, NotFoundException } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { isEmail } from 'class-validator';
 import { AppModule } from 'src/app.module';
-import { CreateUserDto } from 'src/core/dtos/users/create-user.dto';
 import { UserEntity } from 'src/core/entities/user.entity';
 import { RolesService } from 'src/modules/roles/roles.service';
 import { UsersService } from 'src/modules/users/users.service';
 
-type SeedUser = {
+type BootstrapEnvironment = Partial<
+  Record<
+    | 'BOOTSTRAP_ADMIN_NAME'
+    | 'BOOTSTRAP_ADMIN_EMAIL'
+    | 'BOOTSTRAP_ADMIN_PASSWORD'
+    | 'BOOTSTRAP_ADMIN_PHONE',
+    string
+  >
+>;
+
+type BootstrapAdmin = {
   name: string;
   email: string;
   password: string;
-  phone: string;
-  roleName: string;
+  phone?: string;
 };
 
-export async function seedUsers(app?: INestApplicationContext) {
-  let createdContext = false;
+export function getBootstrapAdmin(
+  env: BootstrapEnvironment = process.env,
+): BootstrapAdmin | null {
+  const name = env.BOOTSTRAP_ADMIN_NAME?.trim();
+  const email = env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
+  const password = env.BOOTSTRAP_ADMIN_PASSWORD;
+  const phone = env.BOOTSTRAP_ADMIN_PHONE?.trim();
+  const configured = [name, email, password, phone].some(Boolean);
 
+  if (!configured) return null;
+  if (!name || !email || !password) {
+    throw new Error(
+      'BOOTSTRAP_ADMIN_NAME, BOOTSTRAP_ADMIN_EMAIL y BOOTSTRAP_ADMIN_PASSWORD son obligatorios',
+    );
+  }
+  if (!isEmail(email)) {
+    throw new Error('BOOTSTRAP_ADMIN_EMAIL no es válido');
+  }
+  if (password.length < 12) {
+    throw new Error(
+      'BOOTSTRAP_ADMIN_PASSWORD debe tener al menos 12 caracteres',
+    );
+  }
+
+  return { name, email, password, ...(phone ? { phone } : {}) };
+}
+
+export async function seedUsers(
+  app?: INestApplicationContext,
+  env: BootstrapEnvironment = process.env,
+) {
+  const admin = getBootstrapAdmin(env);
+  if (!admin) {
+    console.log('Bootstrap de administrador omitido: no fue configurado');
+    return;
+  }
+
+  let createdContext = false;
   if (!app) {
     app = await NestFactory.createApplicationContext(AppModule);
     createdContext = true;
   }
 
-  const rolesService: RolesService = app.get(RolesService);
-  const usersService: UsersService = app.get(UsersService);
-
-  const users: SeedUser[] = [
-    {
-      name: 'Admin Sistema',
-      email: 'grovergonzalez8@gmail.com',
-      password: 'Admin123*',
-      phone: '64858084',
-      roleName: 'admin',
-    },
-    {
-      name: 'Cocinero 1',
-      email: 'kitchen@restaurant.test',
-      password: 'Kitchen123*',
-      phone: '64858085',
-      roleName: 'kitchen',
-    },
-    {
-      name: 'Mesero 1',
-      email: 'waiter@restaurant.test',
-      password: 'Waiter123*',
-      phone: '64858086',
-      roleName: 'waiter',
-    },
-  ];
-
-  for (const userData of users) {
-    try {
-      let existing: UserEntity | null = null;
-      try {
-        existing = await usersService.findByEmail(userData.email);
-      } catch (error) {
-        if (!(error instanceof NotFoundException)) throw error;
-      }
-
-      let role = await rolesService.findByName(userData.roleName);
-
-      if (!role) {
-        try {
-          const created = await rolesService.create({
-            name: userData.roleName,
-            description: `${userData.roleName} seed`,
-          });
-          role = created;
-          console.log(
-            `Rol '${userData.roleName}' creado exitosamente para el usuario '${userData.email}'.`,
-          );
-        } catch (error) {
-          const message =
-            error instanceof Error ? error.message : String(error);
-          console.error(
-            `Error al crear el rol '${userData.roleName}' para el usuario '${userData.email}':`,
-            message,
-          );
-          role = await rolesService.findByName(userData.roleName);
-        }
-      }
-      if (!role) {
-        throw new Error(`No se pudo resolver el rol '${userData.roleName}'`);
-      }
-
-      if (existing) {
-        if (existing.role?.id !== role.id) {
-          await usersService.update(existing.id, { roleId: role.id });
-          console.log(`Rol corregido para: ${userData.email}`);
-        } else {
-          console.log(`Usuario existente, skip: ${userData.email}`);
-        }
-        continue;
-      }
-
-      const dto: CreateUserDto = {
-        name: userData.name,
-        email: userData.email,
-        password: userData.password,
-        phone: userData.phone,
-        roleId: role.id,
-      };
-
-      await usersService.create(dto);
-      console.log(`Usuario '${userData.name}' creado exitosamente.`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error(`Error al crear el usuario '${userData.name}':`, message);
+  try {
+    const rolesService = app.get(RolesService);
+    const usersService = app.get(UsersService);
+    const adminRole = await rolesService.findByName('admin');
+    if (!adminRole) {
+      throw new Error('El rol admin debe existir antes del bootstrap');
     }
-  }
-  if (createdContext) {
-    await app.close();
+
+    let existing: UserEntity | null = null;
+    try {
+      existing = await usersService.findByEmail(admin.email);
+    } catch (error) {
+      if (!(error instanceof NotFoundException)) throw error;
+    }
+
+    if (existing) {
+      if (existing.role?.id !== adminRole.id) {
+        throw new Error(
+          'El usuario configurado para bootstrap existe sin rol admin',
+        );
+      }
+      console.log('Administrador inicial ya existente; bootstrap omitido');
+      return;
+    }
+
+    await usersService.create({
+      name: admin.name,
+      email: admin.email,
+      password: admin.password,
+      phone: admin.phone,
+      roleId: adminRole.id,
+    });
+    console.log('Administrador inicial creado correctamente');
+  } finally {
+    if (createdContext) await app.close();
   }
 }

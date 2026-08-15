@@ -19,7 +19,8 @@ async function bootstrap() {
       await seedUsers(app);
       console.log('Seeds terminadas o cargadas');
     } catch (error) {
-      console.error('Seed tuvo un error al ejecutarse:', error);
+      console.error('Las seeds no pudieron completarse');
+      if (env === 'production') throw error;
     }
   }
 
